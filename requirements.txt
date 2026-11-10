@@ -11,6 +11,7 @@ pandas>=3.0           # analisis
 pyarrow>=16.0         # parquet de data/
 numpy>=1.26           # mapa de diputados (componentes principales)
 matplotlib>=3.8       # graficos SVG de los informes
+pillow>=10.0          # carrusel de Instagram
 
 # Calidad
 pytest>=8.0

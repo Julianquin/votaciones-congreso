@@ -8,7 +8,7 @@ pythonpath = ["."]          # para importar `src.votaciones` desde la raiz
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-extend-exclude = ["data", "reports"]
+extend-exclude = ["data", "reports", "social", "notebooks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

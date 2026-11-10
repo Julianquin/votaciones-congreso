@@ -17,6 +17,11 @@ En producción en GitHub (`Julianquin/votaciones-congreso`), con la XV completa 
 - 43 tests sin red (`make check`, ~1,5 s), con `-W error`. `ruff` limpio.
 - matplotlib y numpy añadidos a `requirements.txt`; el lock del entorno único no mueve ningún pin.
 
+## Instagram (2026-11-11)
+
+- `instagram --mes 2026-09` genera el carrusel de ejemplo (6 diapositivas y `pie.txt`). Revisado a ojo, con y sin fondo; el fondo se probó con una imagen simulada.
+- `notebooks/portada_ia.ipynb` está escrito pero **no se ha ejecutado**. Los pesos de Nunchaku están a medias en la caché (7,9 GB de unos 13), de la prueba de SRNR, que tampoco llegó a correr.
+
 ## Qué no está comprobado
 
 - Segunda votación de investidura (DA-8).
@@ -30,6 +35,6 @@ En producción en GitHub (`Julianquin/votaciones-congreso`), con la XV completa 
 
 ```bash
 cd ~/proyectos/votaciones-congreso
-make check     # debe dar 43 passed
+make check     # debe dar 44 passed
 make sondear   # «Legislatura XV: N días con votación…»
 ```

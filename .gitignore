@@ -9,3 +9,6 @@ __pycache__/
 
 # data/ y reports/ SÍ van en git: son el producto (ver docs/DECISIONS.md, D-03).
 *.parquet.tmp
+
+# Carruseles de Instagram: se generan en local y se publican a mano (D-20).
+social/

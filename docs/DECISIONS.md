@@ -104,6 +104,15 @@ El usuario pidió que el informe fuera «más sencillo de leer, algo que un ciud
 
 En la frase de quién votó qué, un grupo va con su posición si votó en bloque o casi en bloque (≥ 75 %, con la cuenta: «Sumar (19 de 23)»). El Mixto solo va con una posición si votó entero igual; si no, se da su reparto.
 
+## D-20 · Carrusel de Instagram: los datos los pinta el código; la IA, como mucho, el fondo de la portada (Vigente, 2026-11-11)
+
+`python -m src.votaciones instagram --mes AAAA-MM` genera en `social/AAAA-MM/` un carrusel de 1080 × 1350 (4:5) y el texto de la publicación (`pie.txt`). Lleva portada con las cifras del mes, las 3 votaciones destacadas (D-19) con hemiciclo y quién votó qué, una diapositiva de barras y otra de cierre con cómo leer los datos y el enlace al repositorio.
+
+- **Un modelo de imagen no pinta datos.** Qwen-Image u otro modelo de difusión inventa escaños, cifras y letras; en un tema político eso es desinformación aunque no se quiera. Hemiciclos, números y texto salen del análisis, como en los informes.
+- **La IA solo hace el fondo de la portada**, y es opcional (`--fondo`). Notebook: `notebooks/portada_ia.ipynb`, con Qwen-Image + Nunchaku NVFP4 + Lightning, como en SRNR. Es una ilustración abstracta de un hemiciclo genérico y vacío: sin personas ni políticos reales, sin el edificio real, sin logos, sin banderas ni símbolos de partido, con la paleta del proyecto. La portada y el texto dicen «Ilustración de portada generada con IA», y el prompt y la semilla se guardan en `social/AAAA-MM/ia/generacion.json`.
+- **Sin ilustración**, la portada lleva el hemiciclo de la votación principal y dice cuál es.
+- `social/` no va en git: se publica a mano desde el móvil o Meta Business Suite. La publicación automática necesita una cuenta profesional y una app de Meta (BACKLOG).
+
 ---
 
 ## Abiertas

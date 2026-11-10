@@ -116,3 +116,31 @@ def test_graficos_deterministas_y_en_el_informe(datos_tmp):
     detalle = (p.parent / "2026-09-detalle.md").read_text()
     assert "## Mapa de diputados" in detalle and "## Quién sacó adelante las votaciones" in detalle
     assert 'srcset="img/2026-09/mapa-oscuro.svg"' in detalle
+
+
+def test_carrusel_de_instagram(datos_tmp):
+    import random
+
+    from PIL import Image
+
+    from src.votaciones import instagram
+
+    random.seed(2)
+    opciones = ["Sí", "No", "Abstención"]
+    jsons = [
+        votacion_json(sesion=202, numero=n, votos=con_votos(*random.choices(opciones, k=9)))
+        for n in range(1, 13)
+    ]
+    guardar(date(2026, 9, 30), *jsons)
+    carpeta = instagram.generar("2026-09", salida=datos_tmp / "social")
+    pngs = sorted(carpeta.glob("*.png"))
+    assert pngs[0].name == "01-portada.png" and pngs[-1].name.endswith("-cierre.png")
+    for p in pngs:
+        with Image.open(p) as img:
+            assert img.size == (1080, 1350)
+    assert "IA" not in (carpeta / "pie.txt").read_text()
+    # Con ilustración de portada, el texto lo declara.
+    fondo = datos_tmp / "fondo.png"
+    Image.new("RGB", (1104, 1472), "#557766").save(fondo)
+    carpeta = instagram.generar("2026-09", fondo=fondo, salida=datos_tmp / "social")
+    assert "generada con IA" in (carpeta / "pie.txt").read_text()

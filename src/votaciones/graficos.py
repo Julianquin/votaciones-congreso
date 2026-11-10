@@ -75,10 +75,10 @@ def _cabecera(fig, titulo: str | None, subtitulo: str | None, tema: dict, y: flo
 
 
 def texto_resultado(fila_v) -> tuple[str, str]:
-    """(«✔ Aprobada», «Hacían falta más síes que noes»)."""
+    """(«✔ Salió adelante», «Hacían falta más síes que noes»)."""
     if fila_v.get("empate"):
         return "= Empate", "Con un empate la votación se repite"
-    resultado = "✔ Aprobada" if fila_v["aprobada"] else "✘ Rechazada"
+    resultado = "✔ Salió adelante" if fila_v["aprobada"] else "✘ No salió adelante"
     umbral = int(fila_v.get("umbral") or 0)
     regla = f"Hacían falta {umbral} síes" if umbral else "Hacían falta más síes que noes"
     return resultado, regla
@@ -135,8 +135,9 @@ def orden_asientos(votos_v: pd.DataFrame, grupos: list[str], mapa_x: pd.Series |
 
 def hemiciclo(
     votos_v: pd.DataFrame, fila_v, grupos: list[str], mapa_x: pd.Series | None, tema: dict,
-    titulo: str | None = None, subtitulo: str | None = None,
+    titulo: str | None = None, subtitulo: str | None = None, compacto: bool = False,
 ):  # fmt: skip
+    """compacto: sin la regla de mayoría ni la leyenda (para la portada del carrusel)."""
     asientos = orden_asientos(votos_v, grupos, mapa_x)
     xy = posiciones_hemiciclo(len(asientos))
     con_cabecera = bool(titulo or subtitulo)
@@ -184,6 +185,8 @@ def hemiciclo(
             color=tema["tinta"], fontweight="bold")  # fmt: skip
     resultado, regla = texto_resultado(fila_v)
     ax.text(0, 0.03, resultado, ha="center", va="center", fontsize=11, color=tema["tinta"])
+    if compacto:
+        return fig
     ax.text(0, -0.06, regla, ha="center", va="center", fontsize=8.5, color=tema["tinta2"])
 
     cuentas = votos_v["voto"].value_counts()
@@ -233,10 +236,10 @@ def barra_resultado(fila_v, tema: dict, titulo: str | None = None, subtitulo: st
 
 
 # --- Barras horizontales -----------------------------------------------------------------
-def barras(valores: pd.Series, tema: dict, titulo: str | None = None):
+def barras(valores: pd.Series, tema: dict, titulo: str | None = None, alto_barra: float = 0.38):
     """Una barra por grupo (proporciones 0–1), ordenadas de mayor a menor, con su etiqueta."""
     valores = valores.sort_values()
-    fig = _figura(tema, 6.4, 0.38 * len(valores) + (0.9 if titulo else 0.4))
+    fig = _figura(tema, 6.4, alto_barra * len(valores) + (0.9 if titulo else 0.4))
     ax = fig.add_axes([0.16, 0.05, 0.74, 0.8 if titulo else 0.9])
     _cabecera(fig, titulo, None, tema)
     ax.set_facecolor(tema["fondo"])

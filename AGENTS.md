@@ -66,6 +66,12 @@ El usuario lanza él los procesos largos y hace él los commits. Tú le pasas lo
 - Los grupos de una fórmula se limitan a nombres de grupo reales (`lenguaje.G`). Si los abres a «cualquier cosa antes de una coma», se rompen títulos como el de la amnistía.
 - Las explicaciones de cada tipo (`EXPLICACIONES`) y el glosario son afirmaciones sobre el reglamento: si cambias una, comprueba que sigue siendo cierta.
 
+**Instagram** (`instagram.py`, D-20):
+- Ningún modelo de imagen genera datos, cifras ni texto. Si alguien pide «que la IA haga el hemiciclo», la respuesta es no: lo hace `graficos.hemiciclo`.
+- El fondo de IA es abstracto y se etiqueta. Nada de personas reales, políticos, el edificio real del Congreso, logos o símbolos de partido.
+- `notebooks/portada_ia.ipynb` ocupa la GPU unos 20 GiB: lo lanza el usuario, con Ollama descargado. Guárdalo sin salidas.
+- `instagram` sí puedes ejecutarlo tú: no usa la red y tarda unos segundos.
+
 **Gráficos:**
 - Los colores de Sí/No no pueden ser azul/rojo (D-16). Si tocas la paleta, pásala por el validador de la guía de visualización.
 - Los SVG deben ser deterministas: hay un test que genera dos veces y compara bytes. No metas fechas ni aleatoriedad.

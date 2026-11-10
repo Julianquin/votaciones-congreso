@@ -6,6 +6,7 @@ actualizar --dia AAAA-MM-DD  descarga solo ese día (útil para probar)
 informe --mes AAAA-MM        regenera reports/AAAA-MM.md con lo que haya en data/
 mensual [--mes AAAA-MM]      lo que corre GitHub Actions: mes anterior + pendientes + informes
 historico --desde AAAA-MM    carga inicial de varios meses (largo: lo lanza el usuario)
+instagram --mes AAAA-MM      carrusel de Instagram en social/AAAA-MM/ (sin red)
 """
 
 from __future__ import annotations
@@ -171,6 +172,19 @@ def cmd_historico(args) -> int:
     return 0
 
 
+def cmd_instagram(args) -> int:
+    from pathlib import Path
+
+    from . import instagram
+
+    fondo = Path(args.fondo) if args.fondo else None
+    if fondo and not fondo.exists():
+        raise ValueError(f"No existe la imagen de fondo {fondo}")
+    carpeta = instagram.generar(args.mes, fondo=fondo)
+    log.info("Carrusel en %s", carpeta)
+    return 0
+
+
 def construir_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="python -m src.votaciones", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)  # fmt: skip
@@ -205,6 +219,11 @@ def construir_parser() -> argparse.ArgumentParser:
     s.add_argument("--hasta", help="por defecto, el mes anterior")
     s.add_argument("--forzar", action="store_true")
     s.set_defaults(func=cmd_historico)
+
+    s = sub.add_parser("instagram")
+    s.add_argument("--mes", required=True)
+    s.add_argument("--fondo", help="ilustración para la portada (notebooks/portada_ia.ipynb)")
+    s.set_defaults(func=cmd_instagram)
     return p
 
 

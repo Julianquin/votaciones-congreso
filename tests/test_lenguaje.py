@@ -34,7 +34,7 @@ def test_titulo_llano(oficial, llano):
 
 def test_titulo_llano_recorta():
     t = titulo_llano("Proyecto de Ley " + "muy " * 80 + "larga.", 60)
-    assert len(t) == 60 and t.endswith("…")
+    assert len(t) <= 60 and t.endswith("muy…")  # corta por palabra, no a mitad
 
 
 def test_articulo():

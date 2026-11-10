@@ -73,4 +73,6 @@ Son construcciones del proyecto, no datos oficiales. Cualquier cambio se refleja
 | F-13 | Empates marcados como tales | **Hecho** |
 | F-14 | Evolución mes a mes (cohesión y afinidad en el tiempo) | Pendiente |
 | F-15 | Informe principal en lenguaje llano con las 5 votaciones más importantes, hemiciclo con título y quién votó qué | **Hecho**; generado para los 34 meses de la XV sin errores |
+| F-17 | Carrusel de Instagram del mes (`instagram`) | **Hecho**; ejemplo de septiembre de 2026 revisado a ojo |
+| F-18 | Fondo de portada con IA (`notebooks/portada_ia.ipynb`) | **Escrito, sin ejecutar**: el modelo no se ha corrido en esta máquina |
 | F-16 | Títulos oficiales en lenguaje llano | **Hecho** para las fórmulas habituales (D-18); el resto se deja tal cual |

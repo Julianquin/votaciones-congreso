@@ -6,6 +6,12 @@ Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ### Añadido
 
+- 2026-11-11: carrusel de Instagram (`instagram.py`, orden `instagram`, D-20): portada, 3 votaciones destacadas con hemiciclo, barras y cierre, más el texto de la publicación. Notebook `portada_ia.ipynb` para el fondo de portada con Qwen-Image, que no se ha ejecutado aún. Hemiciclo con versión compacta. Dependencia explícita: pillow.
+
+### Cambiado
+
+- 2026-11-11: el centro del hemiciclo dice «Salió adelante» / «No salió adelante», igual que el texto del informe. Los títulos llanos se recortan por palabra entera.
+
 - 2026-11-10: informe principal para cualquier ciudadano (D-19). El técnico pasa a `AAAA-MM-detalle.md`.
   - «En pocas palabras», las 5 votaciones más importantes del mes con hemiciclo, tipo de votación explicado y quién votó qué, barras de qué grupos votaron más veces lo que salió, quién vota con quién, tipos de asunto y glosario.
   - Títulos en lenguaje llano (`lenguaje.py`, D-18).

@@ -120,7 +120,12 @@ def titulo_llano(texto_expediente: str, maximo: int = 150) -> str:
         t,
     )
     t = t[0].upper() + t[1:] if t else t
-    return t if len(t) <= maximo else t[: maximo - 1].rstrip(" ,;:") + "…"
+    if len(t) <= maximo:
+        return t
+    corte = t[: maximo - 1]
+    if " " in corte[maximo // 2 :]:
+        corte = corte.rsplit(" ", 1)[0]  # sin partir una palabra
+    return corte.rstrip(" ,;:") + "…"
 
 
 # Explicación de una línea para cada categoría (config.CATEGORIAS).

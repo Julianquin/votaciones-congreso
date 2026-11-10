@@ -22,6 +22,10 @@ Cada tarea dice quién la desbloquea.
 
 ## Más adelante
 
+- [ ] Ejecutar `notebooks/portada_ia.ipynb` por primera vez: termina la descarga de los pesos de Nunchaku y valida la calidad de la portada: **usuario**.
+- [ ] Generar el carrusel en el workflow mensual (sin portada de IA, porque los runners no tienen GPU) y adjuntarlo como artefacto del job: **agente**.
+- [ ] Publicación automática en Instagram (Graph API): necesita una cuenta profesional, una app de Meta y un token en los secretos del repo: **usuario**.
+
 - [ ] Partido dentro del Grupo Mixto ([DA-2](DECISIONS.md)): **usuario** decide la fuente.
 - [ ] Web en GitHub Pages: buscador por diputado y votación, hemiciclo con detalle al pasar el ratón ([DA-3](DECISIONS.md)).
 - [ ] Legislaturas X–XIV ([DA-4](DECISIONS.md)): etiquetas de grupo por legislatura.
