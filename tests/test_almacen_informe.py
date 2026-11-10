@@ -58,7 +58,7 @@ def test_informe_completo(datos_tmp):
     )  # fmt: skip
     v, votos = almacen.cargar_mes("2026-09")
     a = analisis.analizar("2026-09", v, votos, ["2026-09-29"])
-    md = informe.componer(a)
+    md = informe.componer_detalle(a)
     for titulo in ("## Resumen", "## Cómo votó cada grupo", "## Afinidad entre grupos",
                    "## Todas las votaciones", "### 30 de septiembre (sesión 202)"):  # fmt: skip
         assert titulo in md
@@ -74,8 +74,9 @@ def test_informe_completo(datos_tmp):
 
 def test_informe_mes_sin_votaciones(datos_tmp):
     v, votos = almacen.cargar_mes("2026-08")
-    md = informe.componer(analisis.analizar("2026-08", v, votos))
-    assert "No hubo votaciones en el Pleno este mes." in md
+    a = analisis.analizar("2026-08", v, votos)
+    assert "No hubo votaciones en el Pleno este mes." in informe.componer_detalle(a)
+    assert "Este mes no hubo votaciones en el Pleno." in informe.componer(a)
 
 
 def test_hemiciclo_tiene_un_asiento_por_diputado():
@@ -100,13 +101,18 @@ def test_graficos_deterministas_y_en_el_informe(datos_tmp):
     p = informe.escribir(a)
     carpeta = p.parent / "img" / "2026-09"
     primera = {f.name: f.read_bytes() for f in carpeta.glob("*.svg")}
-    assert {"mapa.svg", "mapa-oscuro.svg", "afinidad.svg", "afinidad-oscuro.svg"} <= set(primera)
-    assert any(n.startswith("hemiciclo-") for n in primera)
+    esperados = {"mapa.svg", "mapa-oscuro.svg", "afinidad.svg", "afinidad-oscuro.svg",
+                 "ganadora.svg", "ganadora-oscuro.svg"}  # fmt: skip
+    assert esperados <= set(primera)
+    assert any(n.startswith("votacion-") for n in primera)
     informe.escribir(a)
     segunda = {f.name: f.read_bytes() for f in carpeta.glob("*.svg")}
     assert primera == segunda  # sin fechas ni ids aleatorios: no ensucia git
     md = p.read_text()
-    assert (
-        '<source media="(prefers-color-scheme: dark)" srcset="img/2026-09/mapa-oscuro.svg">' in md
-    )
-    assert "## Mapa de diputados" in md and "## Quién sacó adelante las votaciones" in md
+    assert "# Qué votó el Congreso en septiembre de 2026" in md
+    assert "## Las votaciones más importantes del mes" in md
+    assert 'srcset="img/2026-09/ganadora-oscuro.svg"' in md
+    assert "(2026-09-detalle.md)" in md
+    detalle = (p.parent / "2026-09-detalle.md").read_text()
+    assert "## Mapa de diputados" in detalle and "## Quién sacó adelante las votaciones" in detalle
+    assert 'srcset="img/2026-09/mapa-oscuro.svg"' in detalle

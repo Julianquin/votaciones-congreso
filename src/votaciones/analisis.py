@@ -251,6 +251,80 @@ def gobierno(v: pd.DataFrame, tg: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(filas, columns=["votacion_id", "posicion", "gana", "pierde"])
 
 
+RE_LLAMAMIENTO = re.compile(r"\(\s*pública por llamamiento\s*\)", re.I)
+
+
+def clave_asunto(texto: str) -> str:
+    """El mismo asunto aunque una votación diga «(Pública por llamamiento)» y otra no."""
+    t = RE_LLAMAMIENTO.sub("", str(texto)).lower()
+    return " ".join(re.sub(r"[^\w\s]", " ", t).split())
+
+
+def destacadas(a: AnalisisMes, n: int | None = None) -> pd.DataFrame:
+    """Las votaciones más relevantes del mes para el informe principal, una por asunto (D-19).
+
+    Puntuación = peso del tipo de asunto + 3 si fue ajustada + 2 si la perdió el Gobierno + 2 si
+    exigía mayoría reforzada − 3 si nadie votó en contra − 2 si fue casi unánime (más de
+    config.CASI_UNANIME votos de diferencia). Un empate se sustituye por su
+    repetición (otra votación del mismo asunto, ese mismo día, con número mayor).
+    """
+    n = config.DESTACADAS if n is None else n
+    v = a.votaciones[~a.votaciones["asentimiento"]].copy()
+    if v.empty:
+        return v
+    pierde = (
+        set(a.gobierno.loc[a.gobierno["pierde"], "votacion_id"]) if not a.gobierno.empty else set()
+    )
+    v["puntos"] = (
+        v["categoria"].map(config.PESO_CATEGORIA).fillna(1)
+        + 3 * (v["margen"].abs() <= config.MARGEN_AJUSTADA)
+        + 2 * v["votacion_id"].isin(pierde)
+        + 2 * (v["umbral"] > 0)
+        - 3 * (v["en_contra"] == 0)
+        - 2 * ((v["a_favor"] - v["en_contra"]).abs() > config.CASI_UNANIME)
+    )
+    v["asunto"] = v["texto_expediente"].map(clave_asunto)
+    # Empates con repetición: fuera.
+    repetidas = v.groupby(["fecha", "asunto"])["numero"].transform("max")
+    v = v[~(v["empate"] & (v["numero"] < repetidas))]
+    v["dist"] = v["margen"].abs()
+    v = v.sort_values(["puntos", "dist", "fecha", "numero"], ascending=[False, True, True, True])
+    v["votaciones_asunto"] = v.groupby("asunto")["votacion_id"].transform("size")
+    v = v.drop_duplicates("asunto")
+    return v.head(n).sort_values(["fecha", "numero"])
+
+
+def quien_voto(a: AnalisisMes, votacion_id: str) -> dict[str, list[str]]:
+    """Grupos por su posición en una votación: {"Sí": [...], "No": [...], ...}.
+
+    Un grupo que votó en bloque, o casi (al menos el 75 % de sus votos), va con su posición; si no
+    fue unánime se añade la cuenta: «Sumar (19 de 23)». El Mixto, que reúne partidos distintos, y
+    los grupos sin mayoría clara van en "mezcla" con su reparto.
+    """
+    g = a.grupos[a.grupos["votacion_id"] == votacion_id].set_index("grupo")
+    salida: dict[str, list[str]] = {"Sí": [], "No": [], "Abstención": [], "mezcla": []}
+    for grupo in a.orden:
+        if grupo not in g.index:
+            continue
+        x = g.loc[grupo]
+        emitidos = {o: int(x[o]) for o in EMITIDOS if x[o]}
+        total = sum(emitidos.values())
+        pos = x["posicion"]
+        unanime = len(emitidos) == 1
+        casi = grupo not in config.GRUPOS_SIN_DISCIPLINA and emitidos.get(pos, 0) >= 0.75 * total
+        claro = pos in EMITIDOS and (unanime or casi)
+        if claro:
+            nombre = "Grupo Mixto" if grupo == "GMx" else config.etiqueta(grupo)
+            if emitidos[pos] < total:
+                nombre += f" ({emitidos[pos]} de {total})"
+            salida[pos].append(nombre)
+        elif emitidos:
+            reparto = ", ".join(f"{k} {n}" for k, n in emitidos.items())
+            nombre = "Grupo Mixto" if grupo == "GMx" else config.etiqueta(grupo)
+            salida["mezcla"].append(f"{nombre} ({reparto})")
+    return salida
+
+
 def categoria(titulo: str) -> str:
     t = titulo.lower()
     for patron, nombre in config.CATEGORIAS:

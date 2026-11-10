@@ -116,7 +116,7 @@ def test_leer_enlaces_recoge_las_votaciones_por_llamamiento():
     assert f["votacion_id"] == "L15-S018-V010" and f["llamamiento"]
     assert (f["a_favor"], f["en_contra"], f["no_votan"]) == (171, 179, 0)
     assert f["texto_expediente"].startswith("Proposición de Ley Orgánica de amnistía")
-    assert f["titulo_subgrupo"] == "Votación de conjunto (pública por llamamiento)"
+    assert f["titulo_subgrupo"] == "Votación de conjunto"  # sin la coletilla
     # Un expediente nuevo tras una votación no arrastra el anterior.
     assert enlaces[11].epigrafes == ("Real Decreto-ley 6/2023.",)
     assert enlaces[12].epigrafes == ("Real Decreto-ley 7/2023.",)

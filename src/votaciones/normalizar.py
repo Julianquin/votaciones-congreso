@@ -15,6 +15,7 @@ El voto vale «Sí», «No», «Abstención» o «No vota».
 
 from __future__ import annotations
 
+import re
 import unicodedata
 from datetime import date
 from typing import TYPE_CHECKING
@@ -99,7 +100,10 @@ def normalizar_html(e: Enlace, diputados: int = 350) -> dict:
     la votación cuenta como no nominal. «No votan» se deduce: escaños menos votos emitidos.
     """
     si, no, abst = (e.totales.get(k, 0) for k in ("si", "no", "abstenciones"))
-    epigrafes = [texto(x).rstrip(".") for x in e.epigrafes]
+    epigrafes = [
+        re.sub(r"\s*\(pública por llamamiento\)\.?", "", texto(x), flags=re.I).rstrip(".")
+        for x in e.epigrafes
+    ]
     return {
         "votacion_id": votacion_id(e.legislatura, e.sesion, e.numero),
         "legislatura": e.legislatura,

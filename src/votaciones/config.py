@@ -57,6 +57,7 @@ CATEGORIAS = (
     (r"investidura", "Investidura"),
     (r"reales decretos-leyes", "Decretos-ley (convalidación)"),
     (r"enmiendas del senado", "Leyes: enmiendas del Senado"),
+    (r"veto del senado", "Leyes: veto del Senado"),
     (r"debates? de totalidad", "Enmiendas a la totalidad"),
     (r"toma en consideración", "Leyes: toma en consideración"),
     (r"iniciativas legislativas|lectura única|avocación|reforma del reglamento",
@@ -70,6 +71,26 @@ CATEGORIAS = (
 )  # fmt: skip
 NO_VINCULANTES = ("Proposiciones no de ley", "Mociones")
 
+# Votaciones destacadas del informe principal (D-19): peso de cada tipo de asunto. Suman
+# además las ajustadas, las que perdió el Gobierno y las que exigían mayoría reforzada.
+PESO_CATEGORIA = {
+    "Investidura": 10,
+    "Decretos-ley (convalidación)": 6,
+    "Leyes: dictamen y votación final": 6,
+    "Presupuestos y estabilidad": 6,
+    "Enmiendas a la totalidad": 4,
+    "Leyes: toma en consideración": 4,
+    "Leyes: enmiendas del Senado": 3,
+    "Leyes: veto del Senado": 5,
+    "Mociones": 2,
+    "Proposiciones no de ley": 2,
+    "Tratados internacionales": 1,
+    "Otros": 1,
+    "Organización de la Cámara": 0,
+}
+DESTACADAS = 5
+CASI_UNANIME = 200  # votos de diferencia entre Sí y No
+
 # Código del JSON -> etiqueta corta para los informes. Un código desconocido se muestra tal cual.
 ETIQUETAS_GRUPO = {
     "GP": "PP",
@@ -78,7 +99,7 @@ ETIQUETAS_GRUPO = {
     "GSUMAR": "Sumar",
     "GR": "ERC",
     "GJxCAT": "Junts",
-    "GEH Bildu": "Bildu",
+    "GEH Bildu": "EH Bildu",
     "GV (EAJ-PNV)": "PNV",
     "GMx": "Mixto",
 }

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="516.504297pt" height="225.400625pt" viewBox="0 0 516.504297 225.400625" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 225.400625 
+L 516.504297 225.400625 
+L 516.504297 0 
+L 0 0 
+z
+" style="fill: #1a1a19"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 11.8368 189 
+L 257.2128 189 
+L 257.2128 145.8 
+L 11.8368 145.8 
+z
+" clip-path="url(#pa37b32da63)" style="fill: #2aa3b3"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 259.2864 189 
+L 493.6032 189 
+L 493.6032 145.8 
+L 259.2864 145.8 
+z
+" clip-path="url(#pa37b32da63)" style="fill: #e8683a"/>
+   </g>
+   <g id="line2d_1">
+    <path d="M 254.1024 195.48 
+L 254.1024 139.32 
+" style="fill: none; stroke: #f0efec; stroke-linecap: square"/>
+   </g>
+   <g id="text_1">
+    <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Helvetica', 'Arial', sans-serif; text-anchor: middle; fill: #ffffff" x="134.5248" y="169.918242" transform="rotate(-0 134.5248 169.918242)">Sí 179</text>
+   </g>
+   <g id="text_2">
+    <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Helvetica', 'Arial', sans-serif; text-anchor: middle; fill: #f0efec" x="376.4448" y="169.737891" transform="rotate(-0 376.4448 169.737891)">No 171</text>
+   </g>
+   <g id="text_3">
+    <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Helvetica', 'Arial', sans-serif; text-anchor: middle; fill: #c3c2b7" x="254.1024" y="212.67875" transform="rotate(-0 254.1024 212.67875)">176 · mayoría absoluta</text>
+   </g>
+  </g>
+  <g id="text_4">
+   <text style="font-weight: 700; font-size: 11.5px; font-family: 'DejaVu Sans', 'Helvetica', 'Arial', sans-serif; text-anchor: start; fill: #f0efec" x="10.8" y="21.633359" transform="rotate(-0 10.8 21.633359)">Investidura de Pedro Sánchez Pérez-Castejón como presidente del Gobierno</text>
+  </g>
+  <g id="text_5">
+   <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Helvetica', 'Arial', sans-serif; text-anchor: start; fill: #c3c2b7" x="10.8" y="38.482344" transform="rotate(-0 10.8 38.482344)">Congreso de los Diputados · 16/11/2023 · Investidura</text>
+  </g>
+  <g id="text_6">
+   <text style="font-size: 10.5px; font-family: 'DejaVu Sans', 'Helvetica', 'Arial', sans-serif; text-anchor: start; fill: #f0efec" x="10.8" y="130.317539" transform="rotate(-0 10.8 130.317539)">✔ Aprobada  ·  Hacían falta 176 síes</text>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pa37b32da63">
+   <rect x="10.8" y="145.8" width="483.84" height="43.2"/>
+  </clipPath>
+ </defs>
+</svg>

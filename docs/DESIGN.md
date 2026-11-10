@@ -2,11 +2,26 @@
 
 ## Para quién y qué pregunta responde
 
-Para alguien que no sigue el Congreso a diario y quiere saber, en cinco minutos, **qué se decidió el mes pasado y cómo se posicionó cada grupo**. Debe poder leerse en el móvil desde GitHub y sin herramientas.
+Para **cualquier ciudadano** que no sigue el Congreso y quiere saber, en cinco minutos, **qué se decidió el mes pasado y quién votó qué**. Tiene que entenderse sin saber qué es una «toma en consideración» y poder leerse en el móvil desde GitHub. Para quien quiera más hay un segundo informe técnico (D-19).
 
-## Orden de las secciones
+## Informe principal (`reports/AAAA-MM.md`)
 
-De lo general a lo particular. Lo que más se consulta va primero, y la tabla completa, que es lo más largo, al final.
+Cada sección es una pregunta que se haría cualquiera:
+
+| Sección | Qué lleva |
+|---|---|
+| En pocas palabras | 4–5 frases: cuántas veces se votó y cuánto salió; cuántas eran leyes y cuántas peticiones que no obligan; cuántas perdió el Gobierno; la más reñida; si los diputados votan con su grupo |
+| Las votaciones más importantes del mes | 5, una por asunto (D-19). Cada una con: título en lenguaje llano (D-18); fecha, tipo y qué significa ese tipo en una frase; hemiciclo con título propio, que se entiende aunque se comparta la imagen sola, o barra de 350 escaños si fue por llamamiento; «✔ Salió adelante por 2 votos»; quién votó a favor, en contra, se abstuvo o se repartió |
+| ¿Qué grupos votaron más veces lo que finalmente salió? | Barras horizontales, de mayor a menor, con el porcentaje escrito |
+| ¿Quién vota con quién? | Mapa de calor con el número en cada casilla |
+| ¿Qué tipo de cosas se votaron? | Tabla con una columna «Qué es» |
+| Palabras que conviene saber | Glosario de 7 términos |
+
+Reglas de redacción propias de este nivel: frases cortas; «salió adelante» y no «aprobada»; «no votó» y no «no vota»; nada de siglas sin explicar salvo las de los partidos; ningún porcentaje sin decir de qué es.
+
+## Informe detallado (`reports/AAAA-MM-detalle.md`)
+
+De lo general a lo particular. La tabla completa, que es lo más largo, va al final.
 
 | Sección | Pregunta | Por qué está ahí |
 |---|---|---|
@@ -43,7 +58,9 @@ De lo general a lo particular. Lo que más se consulta va primero, y la tabla co
 
 | Gráfico | Forma | Por qué |
 |---|---|---|
-| Hemiciclo | 350 puntos en semicírculo, un hueco entre grupos, color = voto | Es como se ve el Congreso; el resultado en el centro y los totales en la leyenda |
+| Hemiciclo | 350 puntos en semicírculo, un hueco entre grupos, color = voto; título y fecha arriba; «✔ Aprobada» y la regla («Hacían falta más síes que noes») en el centro | Es como se ve el Congreso y lo que mejor entiende cualquiera |
+| Barra de resultado | 350 escaños en una barra (Sí, No, abstención, no votó) con la marca de los 176 | Para las votaciones por llamamiento, que no tienen voto por diputado |
+| Votaron lo que salió | Barras horizontales de un solo color, ordenadas, con el valor escrito | La comparación más sencilla posible entre grupos |
 | Afinidad | Mapa de calor del triángulo inferior, rampa de un solo tono, número en cada celda | Magnitud = rampa secuencial; el número evita depender del color |
 | Mapa de diputados | Paneles pequeños, uno por grupo, resaltado sobre el resto en gris; el área del punto crece con los diputados que coinciden | 9 colores de grupo no se distinguen en dispersión; los diputados que votan igual caen en el mismo punto |
 

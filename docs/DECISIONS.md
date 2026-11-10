@@ -89,6 +89,21 @@ Una petición por segundo, 4 reintentos con espera creciente solo ante 429 y 5xx
 
 El informe es determinista y verificable. El resumen en lenguaje natural queda en [DA-1](#da-1--resumen-del-mes-con-un-llm).
 
+## D-18 · Títulos en lenguaje llano, solo quitando fórmulas (Vigente, 2026-11-10)
+
+`lenguaje.titulo_llano` acorta lo que es fórmula administrativa y los nombres de grupo: «Moción consecuencia de interpelación urgente del Grupo Parlamentario VOX, sobre…» pasa a «Moción de Vox sobre…», y «Propuesta de don X como candidato a la Presidencia del Gobierno» pasa a «Investidura de X como presidente del Gobierno». **No resume ni interpreta el contenido**: lo que no encaja en una fórmula se deja tal cual, y el texto oficial sigue enlazado. Los grupos de una fórmula tienen que ser nombres de grupo reales; sin esa condición, «amnistía para la normalización institucional» se leyó como si fuera un grupo. Resumir el contenido sería trabajo para un LLM ([DA-1](#da-1--resumen-del-mes-con-un-llm)).
+
+## D-19 · Informe en dos niveles: principal para cualquier ciudadano y detallado aparte (Vigente, 2026-11-10)
+
+El usuario pidió que el informe fuera «más sencillo de leer, algo que un ciudadano del común pueda entender», y señaló el hemiciclo como lo que mejor funciona.
+
+- `reports/AAAA-MM.md` contiene: en pocas palabras; las 5 votaciones más importantes, cada una con su hemiciclo, qué tipo de votación es y quién votó qué; qué grupos votaron más veces lo que salió; quién vota con quién; qué tipo de cosas se votaron, y un glosario.
+- `reports/AAAA-MM-detalle.md` es el informe técnico anterior: cohesión, decisivos, mapa de diputados, mayorías, disidencias, ausencias y la lista completa.
+
+**Votaciones destacadas** (`analisis.destacadas`), una por asunto. La puntuación es el peso del tipo de asunto (`config.PESO_CATEGORIA`: investidura 10, decretos-ley y leyes 6, peticiones al Gobierno 2…), +3 si fue ajustada, +2 si la perdió el Gobierno, +2 si exigía mayoría reforzada, −3 si nadie votó en contra y −2 si fue casi unánime. Un empate se sustituye por su repetición. Es un juicio declarado: el informe explica en una frase cómo se eligen.
+
+En la frase de quién votó qué, un grupo va con su posición si votó en bloque o casi en bloque (≥ 75 %, con la cuenta: «Sumar (19 de 23)»). El Mixto solo va con una posición si votó entero igual; si no, se da su reparto.
+
 ---
 
 ## Abiertas

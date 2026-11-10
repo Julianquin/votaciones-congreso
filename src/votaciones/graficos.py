@@ -12,6 +12,7 @@ informe sin cambios no produzca diffs en git.
 from __future__ import annotations
 
 import shutil
+import textwrap
 from pathlib import Path
 
 import matplotlib
@@ -56,6 +57,31 @@ TEMAS = {
     },
 }  # fmt: skip
 OPCIONES = ("Sí", "No", "Abstención", "No vota")
+LEYENDA = {"Sí": "Sí", "No": "No", "Abstención": "Abstención", "No vota": "No votó"}
+
+
+def _cabecera(fig, titulo: str | None, subtitulo: str | None, tema: dict, y: float = 0.985):
+    """Título (2 líneas como mucho) y subtítulo arriba a la izquierda: la imagen se entiende
+    aunque se comparta sola."""
+    if titulo:
+        lineas = textwrap.wrap(titulo, 72)
+        texto = "\n".join(lineas[:2]) + ("…" if len(lineas) > 2 else "")
+        fig.text(0.02, y, texto, ha="left", va="top", fontsize=11.5, fontweight="bold",
+                 color=tema["tinta"], linespacing=1.3)  # fmt: skip
+        alto_linea = 11.5 * 1.45 / 72 / fig.get_figheight()  # en fracción de la figura
+        y -= alto_linea * min(len(lineas), 2) + 0.25 * alto_linea
+    if subtitulo:
+        fig.text(0.02, y, subtitulo, ha="left", va="top", fontsize=9, color=tema["tinta2"])
+
+
+def texto_resultado(fila_v) -> tuple[str, str]:
+    """(«✔ Aprobada», «Hacían falta más síes que noes»)."""
+    if fila_v.get("empate"):
+        return "= Empate", "Con un empate la votación se repite"
+    resultado = "✔ Aprobada" if fila_v["aprobada"] else "✘ Rechazada"
+    umbral = int(fila_v.get("umbral") or 0)
+    regla = f"Hacían falta {umbral} síes" if umbral else "Hacían falta más síes que noes"
+    return resultado, regla
 
 
 # --- Utilidades --------------------------------------------------------------------------
@@ -108,12 +134,15 @@ def orden_asientos(votos_v: pd.DataFrame, grupos: list[str], mapa_x: pd.Series |
 
 
 def hemiciclo(
-    votos_v: pd.DataFrame, fila_v, grupos: list[str], mapa_x: pd.Series | None, tema: dict
-):
+    votos_v: pd.DataFrame, fila_v, grupos: list[str], mapa_x: pd.Series | None, tema: dict,
+    titulo: str | None = None, subtitulo: str | None = None,
+):  # fmt: skip
     asientos = orden_asientos(votos_v, grupos, mapa_x)
     xy = posiciones_hemiciclo(len(asientos))
-    fig = _figura(tema, 7.0, 4.3)
-    ax = fig.add_axes([0, 0.1, 1, 0.9])
+    con_cabecera = bool(titulo or subtitulo)
+    fig = _figura(tema, 7.0, 5.2 if con_cabecera else 4.3)
+    ax = fig.add_axes([0, 0.09, 1, 0.72] if con_cabecera else [0, 0.1, 1, 0.9])
+    _cabecera(fig, titulo, subtitulo, tema)
     ax.set_facecolor(tema["fondo"])
     ax.set_aspect("equal")
     ax.axis("off")
@@ -153,22 +182,74 @@ def hemiciclo(
     si, no = int(fila_v["a_favor"]), int(fila_v["en_contra"])
     ax.text(0, 0.17, f"{si} – {no}", ha="center", va="center", fontsize=20,
             color=tema["tinta"], fontweight="bold")  # fmt: skip
-    resultado = "Aprobada" if fila_v["aprobada"] else "Rechazada"
-    if fila_v.get("umbral"):
-        resultado += f" (necesita {int(fila_v['umbral'])})"
-    ax.text(0, 0.03, resultado, ha="center", va="center", fontsize=9.5, color=tema["tinta2"])
+    resultado, regla = texto_resultado(fila_v)
+    ax.text(0, 0.03, resultado, ha="center", va="center", fontsize=11, color=tema["tinta"])
+    ax.text(0, -0.06, regla, ha="center", va="center", fontsize=8.5, color=tema["tinta2"])
 
     cuentas = votos_v["voto"].value_counts()
     manejadores = [
         Line2D([], [], linestyle="", marker="o", markersize=8,
                markerfacecolor=tema["fondo"] if o == "No vota" else tema[o],
                markeredgecolor=tema[o], markeredgewidth=1.2 if o == "No vota" else 0,
-               label=f"{o} {int(cuentas.get(o, 0))}")
+               label=f"{LEYENDA[o]} {int(cuentas.get(o, 0))}")
         for o in OPCIONES
     ]  # fmt: skip
     fig.legend(handles=manejadores, loc="lower center", ncol=4, frameon=False,
                labelcolor=tema["tinta2"], bbox_to_anchor=(0.5, 0.0), handletextpad=0.3,
                columnspacing=1.6)  # fmt: skip
+    return fig
+
+
+# --- Votación sin voto por diputado (llamamiento) ----------------------------------------
+def barra_resultado(fila_v, tema: dict, titulo: str | None = None, subtitulo: str | None = None):
+    """Barra de 350 escaños: Sí, No, abstención y no votó, con la marca de los 176."""
+    si, no, abst = int(fila_v["a_favor"]), int(fila_v["en_contra"]), int(fila_v["abstenciones"])
+    resto = max(config.DIPUTADOS - si - no - abst, 0)
+    fig = _figura(tema, 7.0, 3.0)
+    _cabecera(fig, titulo, subtitulo, tema)
+    ax = fig.add_axes([0.02, 0.16, 0.96, 0.2])
+    ax.set_facecolor(tema["fondo"])
+    x = 0
+    for valor, color, etiqueta in ((si, tema["Sí"], f"Sí {si}"), (no, tema["No"], f"No {no}"),
+                                   (abst, tema["Abstención"], f"Abst. {abst}"),
+                                   (resto, tema["rejilla"], f"No votó {resto}")):  # fmt: skip
+        if valor:
+            ax.barh(0, valor - 1.5, left=x + 0.75, color=color, height=1)  # 2 px de hueco
+            if valor >= 25:
+                ax.text(x + valor / 2, 0, etiqueta, ha="center", va="center", fontsize=9,
+                        color="#ffffff" if color in (tema["Sí"],) else tema["tinta"])  # fmt: skip
+        x += valor
+    ax.axvline(config.MAYORIA_ABSOLUTA, color=tema["tinta"], linewidth=1, ymin=-0.15,
+               ymax=1.15, clip_on=False)  # fmt: skip
+    ax.text(config.MAYORIA_ABSOLUTA, -0.9, "176 · mayoría absoluta", ha="center", va="top",
+            fontsize=8, color=tema["tinta2"])  # fmt: skip
+    ax.set_xlim(0, config.DIPUTADOS)
+    ax.set_ylim(-0.5, 0.5)
+    ax.axis("off")
+    resultado, regla = texto_resultado(fila_v)
+    fig.text(0.02, 0.42, f"{resultado}  ·  {regla}", ha="left", va="bottom", fontsize=10.5,
+             color=tema["tinta"])  # fmt: skip
+    return fig
+
+
+# --- Barras horizontales -----------------------------------------------------------------
+def barras(valores: pd.Series, tema: dict, titulo: str | None = None):
+    """Una barra por grupo (proporciones 0–1), ordenadas de mayor a menor, con su etiqueta."""
+    valores = valores.sort_values()
+    fig = _figura(tema, 6.4, 0.38 * len(valores) + (0.9 if titulo else 0.4))
+    ax = fig.add_axes([0.16, 0.05, 0.74, 0.8 if titulo else 0.9])
+    _cabecera(fig, titulo, None, tema)
+    ax.set_facecolor(tema["fondo"])
+    ax.barh(range(len(valores)), valores.to_numpy(), color=tema["resaltado"], height=0.62)
+    for i, val in enumerate(valores.to_numpy()):
+        ax.text(val + 0.01, i, f"{100 * val:.0f} %", va="center", fontsize=9, color=tema["tinta"])
+    ax.set_yticks(range(len(valores)), [config.etiqueta(g) for g in valores.index])
+    ax.tick_params(length=0, colors=tema["tinta2"])
+    ax.set_xlim(0, 1.12)
+    ax.set_xticks([])
+    for lado, s in ax.spines.items():
+        s.set_visible(lado == "left")
+        s.set_color(tema["rejilla"])
     return fig
 
 
@@ -252,16 +333,19 @@ def _agrupar(p: pd.DataFrame) -> pd.DataFrame:
 
 
 # --- Todo el mes -------------------------------------------------------------------------
-def generar_mes(a, informes: Path, max_hemiciclos: int = 4) -> dict:
+def generar_mes(a, informes: Path, destacadas: pd.DataFrame | None = None) -> dict:
     """Dibuja los gráficos del mes en reports/img/AAAA-MM/ y devuelve sus rutas relativas.
 
-    {"mapa": (claro, oscuro), "afinidad": (...), "hemiciclos": {votacion_id: (...)}}
+    {"mapa": (claro, oscuro), "afinidad": (...), "ganadora": (...),
+     "destacadas": {votacion_id: (claro, oscuro)}}
     """
+    from .lenguaje import titulo_llano
+
     carpeta = informes / "img" / a.mes
     if carpeta.exists():
         shutil.rmtree(carpeta)  # sin restos de una versión anterior del informe
-    rutas: dict = {"hemiciclos": {}}
-    if a.grupos.empty:
+    rutas: dict = {"destacadas": {}}
+    if a.votaciones.empty:
         return rutas
 
     def dibujar(nombre: str, hacer) -> tuple[str, str]:
@@ -277,14 +361,23 @@ def generar_mes(a, informes: Path, max_hemiciclos: int = 4) -> dict:
         rutas["mapa"] = dibujar("mapa", lambda t: mapa(a.mapa.puntos, grupos, t))
     if not a.afinidad.empty and len(a.afinidad) > 1:
         rutas["afinidad"] = dibujar("afinidad", lambda t: afinidad(a.afinidad, grupos, t))
+    if not a.resumen.empty:
+        rutas["ganadora"] = dibujar("ganadora", lambda t: barras(a.resumen["ganadora"], t))
 
     mapa_x = a.mapa.puntos.set_index("diputado")["x"] if a.mapa is not None else None
-    for vid in ajustadas(a, max_hemiciclos)["votacion_id"]:
-        fila = a.votaciones.set_index("votacion_id").loc[vid]
-        votos_v = a.votos[a.votos["votacion_id"] == vid]
-        rutas["hemiciclos"][vid] = dibujar(
-            f"hemiciclo-{vid}", lambda t, f=fila, vv=votos_v: hemiciclo(vv, f, grupos, mapa_x, t)
-        )
+    por_id = a.votaciones.set_index("votacion_id")
+    for vid in [] if destacadas is None else destacadas["votacion_id"]:
+        fila = por_id.loc[vid]
+        titulo = titulo_llano(fila["texto_expediente"] or fila["titulo"], 140)
+        sub = f"Congreso de los Diputados · {fila['fecha']:%d/%m/%Y} · {fila['categoria']}"
+        if fila["nominal"]:
+            votos_v = a.votos[a.votos["votacion_id"] == vid]
+            hacer = lambda t, f=fila, vv=votos_v, ti=titulo, su=sub: hemiciclo(  # noqa: E731
+                vv, f, grupos, mapa_x, t, ti, su
+            )
+        else:
+            hacer = lambda t, f=fila, ti=titulo, su=sub: barra_resultado(f, t, ti, su)  # noqa: E731
+        rutas["destacadas"][vid] = dibujar(f"votacion-{vid}", hacer)
     return rutas
 
 

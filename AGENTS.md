@@ -61,6 +61,11 @@ El usuario lanza él los procesos largos y hace él los commits. Tú le pasas lo
 - Los códigos de grupo cambian entre legislaturas. Un código sin etiqueta en `config.ETIQUETAS_GRUPO` sale tal cual en el informe.
 - `fecha` vuelve de parquet como `datetime.date` porque `almacen._leer` la convierte. Si lees los parquet por tu cuenta, conviértela tú.
 
+**Lenguaje llano** (`lenguaje.py`, D-18):
+- Solo se quitan fórmulas administrativas y se acortan nombres de grupo. **Nunca** se resume ni se reinterpreta el contenido de una iniciativa: lo que no encaja en una fórmula se deja como está.
+- Los grupos de una fórmula se limitan a nombres de grupo reales (`lenguaje.G`). Si los abres a «cualquier cosa antes de una coma», se rompen títulos como el de la amnistía.
+- Las explicaciones de cada tipo (`EXPLICACIONES`) y el glosario son afirmaciones sobre el reglamento: si cambias una, comprueba que sigue siendo cierta.
+
 **Gráficos:**
 - Los colores de Sí/No no pueden ser azul/rojo (D-16). Si tocas la paleta, pásala por el validador de la guía de visualización.
 - Los SVG deben ser deterministas: hay un test que genera dos veces y compara bytes. No metas fechas ni aleatoriedad.

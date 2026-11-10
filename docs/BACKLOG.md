@@ -8,6 +8,9 @@ Cada tarea dice quién la desbloquea.
 
 ## Siguiente
 
+- [ ] Resumir el contenido de cada votación destacada en una frase llana («Pide bajar el IRPF por la inflación»). Las reglas de D-18 solo quitan fórmulas; esto pide un LLM ([DA-1](DECISIONS.md)): **usuario** elige.
+- [ ] Evitar que una misma reforma ocupe varias destacadas (noviembre de 2023: cuatro votaciones de la reforma del Reglamento con textos distintos): **agente**.
+
 - [ ] **Evolución en el tiempo**: informe de la legislatura con la cohesión de cada grupo mes a mes y la afinidad de pares clave (Junts–PSOE, Junts–PP, PNV–PSOE) a lo largo de la XV: **agente**, con la carga histórica.
 - [ ] Mapa de diputados de toda la legislatura (más votaciones, más fiable que el mensual): **agente**.
 - [ ] Voto individual de las votaciones por llamamiento desde el Diario de Sesiones ([DA-9](DECISIONS.md)): **agente**.

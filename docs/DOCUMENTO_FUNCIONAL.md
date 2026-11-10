@@ -20,7 +20,7 @@ Público: cualquier persona que quiera seguir la actividad parlamentaria sin lee
 ## Qué produce
 
 1. **Datos** en `data/`: un parquet de votaciones y otro de votos por mes, y `dias.json` con el estado de cada día. Esquema en [ARCHITECTURE.md](ARCHITECTURE.md).
-2. **Un informe por mes** en `reports/AAAA-MM.md` y un índice en `reports/README.md`.
+2. **Dos informes por mes**: `reports/AAAA-MM.md`, para cualquier ciudadano, y `reports/AAAA-MM-detalle.md`, técnico. Además, un índice en `reports/README.md` (D-19).
 
 ## Definiciones
 
@@ -72,3 +72,5 @@ Son construcciones del proyecto, no datos oficiales. Cualquier cambio se refleja
 | F-12 | Mayorías ganadoras, votaciones perdidas por el Gobierno y tipo de asunto | **Hecho** |
 | F-13 | Empates marcados como tales | **Hecho** |
 | F-14 | Evolución mes a mes (cohesión y afinidad en el tiempo) | Pendiente |
+| F-15 | Informe principal en lenguaje llano con las 5 votaciones más importantes, hemiciclo con título y quién votó qué | **Hecho**; generado para los 34 meses de la XV sin errores |
+| F-16 | Títulos oficiales en lenguaje llano | **Hecho** para las fórmulas habituales (D-18); el resto se deja tal cual |

@@ -183,3 +183,29 @@ def test_mapa_separa_bloques_y_orienta_al_pp_a_la_derecha():
     assert pts.loc["S0", "x"] < pts.loc["Raro", "x"] < pts.loc["P0", "x"]
     assert m.varianza[0] > 0.5
     assert analisis.orden_espacial(m, ["GP", "GS"]) == ["GS", "GP"]
+
+
+def test_quien_voto_y_destacadas():
+    from src.votaciones import informe
+
+    # A en bloque Sí; B: 1 Sí y 1 No (sin mayoría clara); C casi en bloque no cabe con 2
+    # diputados, así que C (No, No) va en contra; el Mixto siempre aparte.
+    v, votos = mes(
+        votacion_json(numero=1, titulo="Convalidación o derogación de Reales Decretos-leyes.",
+                      texto="Real Decreto-ley 1/2026, de 2 de enero, de prueba.",
+                      votos=con_votos("Sí", "Sí", "Sí", "Sí", "No", "No", "No", "Sí", "No")),
+        # Mismo asunto, otra votación: solo debe salir una.
+        votacion_json(numero=2, titulo="Convalidación o derogación de Reales Decretos-leyes.",
+                      texto="Real Decreto-ley 1/2026, de 2 de enero, de prueba.",
+                      votos=con_votos(*["Sí"] * 9)),
+        votacion_json(numero=3, votos=con_votos(*["No"] * 9)),
+    )  # fmt: skip
+    a = analisis.analizar("2026-09", v, votos)
+    q = analisis.quien_voto(a, "L15-S001-V001")
+    assert q["Sí"] == ["A"] and q["No"] == ["C"]
+    assert q["mezcla"] == ["B (Sí 1, No 1)", "Grupo Mixto (Sí 1, No 1)"]
+    d = analisis.destacadas(a)
+    assert list(d["votacion_id"]) == ["L15-S001-V001", "L15-S001-V003"]  # el decreto, una vez
+    assert d.iloc[0]["votaciones_asunto"] == 2
+    fila = analisis.resultados(v).iloc[0]
+    assert informe.distancia(fila) == "por 1 voto"

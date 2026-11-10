@@ -6,6 +6,12 @@ Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ### Añadido
 
+- 2026-11-10: informe principal para cualquier ciudadano (D-19). El técnico pasa a `AAAA-MM-detalle.md`.
+  - «En pocas palabras», las 5 votaciones más importantes del mes con hemiciclo, tipo de votación explicado y quién votó qué, barras de qué grupos votaron más veces lo que salió, quién vota con quién, tipos de asunto y glosario.
+  - Títulos en lenguaje llano (`lenguaje.py`, D-18).
+  - Hemiciclo con título, fecha, «✔ Aprobada / ✘ Rechazada» y la regla de mayoría; barra de 350 escaños para las votaciones por llamamiento.
+  - Categoría «Leyes: veto del Senado».
+
 - 2026-11-10: gráficos y secciones nuevas del informe.
   - Votaciones públicas por llamamiento (investiduras, conjunto de leyes orgánicas, repeticiones tras empate) leídas del HTML del día; nueva columna `llamamiento` (D-12).
   - Hemiciclo de las votaciones más ajustadas, mapa de calor de afinidad y mapa de diputados por componentes principales, en SVG claro y oscuro (`graficos.py`, D-13, D-16).

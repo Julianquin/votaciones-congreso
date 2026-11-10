@@ -11,15 +11,18 @@ votaciones-congreso/
 │   ├── almacen.py      parquet mensual, sustitución por día, manifiesto dias.json
 │   ├── analisis.py     umbral, posiciones, cohesión, decisivos, afinidad, mapa (PCA),
 │   │                   mayorías, Gobierno, categorías, disidencias, ausencias
-│   ├── graficos.py     hemiciclo, mapa de calor y mapa de diputados (SVG claro y oscuro)
-│   ├── informe.py      Markdown del mes e índice
+│   ├── graficos.py     hemiciclo, barra de resultado, barras, mapa de calor y mapa de
+│   │                   diputados (SVG claro y oscuro)
+│   ├── lenguaje.py     títulos en lenguaje llano, explicación de cada tipo y glosario
+│   ├── informe.py      informe principal, informe detallado e índice
 │   └── cli.py          órdenes sondear / actualizar / informe / mensual / historico
 ├── tests/              sin red; JSON sintético con la forma real del portal
 ├── data/               lo escribe el bot (en git)
 │   ├── votaciones/AAAA-MM.parquet
 │   ├── votos/AAAA-MM.parquet
 │   └── dias.json
-├── reports/            lo escribe el bot (en git): AAAA-MM.md, README.md e img/AAAA-MM/*.svg
+├── reports/            lo escribe el bot (en git): AAAA-MM.md (principal), AAAA-MM-detalle.md,
+│                       README.md e img/AAAA-MM/*.svg (~0,9 MB por mes)
 ├── .github/workflows/  mensual.yml (cron) y tests.yml (push/PR)
 └── docs/
 ```

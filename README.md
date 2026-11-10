@@ -2,7 +2,7 @@
 
 Análisis automático y mensual de **cómo votan los grupos parlamentarios y los diputados en el Pleno del Congreso de los Diputados**, a partir del [portal de datos abiertos del Congreso](https://www.congreso.es/es/opendata/votaciones).
 
-Cada mes, GitHub Actions descarga las votaciones del mes anterior, las guarda en `data/` y publica un informe en [reports/](reports/) con:
+Cada mes, GitHub Actions descarga las votaciones del mes anterior, las guarda en `data/` y publica en [reports/](reports/) **un resumen para cualquier ciudadano**: las votaciones más importantes con su hemiciclo, explicadas sin tecnicismos y diciendo quién votó qué. Además publica **un análisis detallado** con:
 
 - qué se votó y qué salió aprobado o rechazado, por tipo de asunto;
 - la posición de cada grupo en cada votación;

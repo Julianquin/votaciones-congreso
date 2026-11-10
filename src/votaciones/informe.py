@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import almacen, config, graficos
+from . import almacen, analisis, config, graficos, lenguaje
 from .analisis import AnalisisMes
 
 ABREV = {"Sí": "Sí", "No": "No", "Abstención": "Abst.", "Dividido": "Div.", "Sin voto": "—"}
@@ -419,11 +419,13 @@ def _todas(a: AnalisisMes) -> list[str]:
 
 
 # --- Documento ---------------------------------------------------------------------------
-def componer(a: AnalisisMes, generado: datetime | None = None, imagenes: dict | None = None) -> str:
+def componer_detalle(
+    a: AnalisisMes, generado: datetime | None = None, imagenes: dict | None = None
+) -> str:
     generado = generado or datetime.now()
     imagenes = imagenes or {}
     hoy = generado.date()
-    titulo = f"# Votaciones del Congreso: {almacen.nombre_mes(a.mes)}"
+    titulo = f"# Análisis detallado: {almacen.nombre_mes(a.mes)}"
     pie = (
         f"_Generado automáticamente el {generado:%Y-%m-%d} con datos abiertos del "
         f"[Congreso de los Diputados]({config.URL_VOTACIONES}). Solo plenos y Diputación "
@@ -437,7 +439,20 @@ def componer(a: AnalisisMes, generado: datetime | None = None, imagenes: dict | 
             else "No hubo votaciones en el Pleno este mes."
         )
         return "\n".join([titulo, "", *_pendientes(a, hoy), vacio, "", pie, ""])
-    partes = [titulo, "", pie, "", *_pendientes(a, hoy), "## Resumen", "", *_resumen(a), ""]
+    volver = f"[← Volver al resumen del mes]({a.mes}.md)"
+    partes = [
+        titulo,
+        "",
+        volver,
+        "",
+        pie,
+        "",
+        *_pendientes(a, hoy),
+        "## Resumen",
+        "",
+        *_resumen(a),
+        "",
+    ]
     if not a.resumen.empty:
         partes += ["## Cómo votó cada grupo", "", *_tabla_grupos(a), ""]
         mapa = _mapa(a, imagenes)
@@ -465,12 +480,215 @@ def componer(a: AnalisisMes, generado: datetime | None = None, imagenes: dict | 
     return "\n".join(partes).rstrip() + "\n"
 
 
+# --- Informe principal: para cualquier ciudadano (D-19) -----------------------------------
+VINCULANTES = (
+    "Investidura", "Decretos-ley (convalidación)", "Leyes: toma en consideración",
+    "Enmiendas a la totalidad", "Leyes: dictamen y votación final", "Leyes: enmiendas del Senado",
+    "Leyes: veto del Senado",
+    "Presupuestos y estabilidad",
+)  # fmt: skip
+
+
+def distancia(fila) -> str:
+    """«por 2 votos», «le faltaron 5 votos para los 176», «superó los 176 por 3»."""
+    umbral = int(fila.get("umbral") or 0)
+    si, no = int(fila["a_favor"]), int(fila["en_contra"])
+    if umbral:
+        d = si - umbral
+        votos = plural(abs(d), "voto")
+        if d > 0:
+            return f"superó los {umbral} síes por {votos}"
+        if d == 0:
+            return f"llegó justo a los {umbral} síes"
+        return f"le faltaron {votos} para los {umbral}"
+    return f"por {plural(abs(si - no), 'voto')}"
+
+
+def _pocas_palabras(a: AnalisisMes) -> list[str]:
+    v = a.votaciones
+    aprob = int(v["aprobada"].sum())
+    empates = int(v["empate"].sum()) if "empate" in v else 0
+    rech = len(v) - aprob - empates
+    dias = v["fecha"].nunique()
+    salieron = plural(aprob, "propuesta salió", "propuestas salieron")
+    cierre = f"; hubo además {plural(empates, 'empate')}, que se repiten." if empates else "."
+    lineas = [
+        f"- El Congreso votó **{plural(len(v), 'vez', 'veces')}** en "
+        f"{plural(dias, 'día de pleno', 'días de pleno')}. **{salieron} adelante** y {rech} no"
+        + cierre
+    ]
+    leyes = int(v["categoria"].isin(VINCULANTES).sum())
+    peticiones = int(v["categoria"].isin(lenguaje.NO_OBLIGA).sum())
+    if leyes or peticiones:
+        frase = f"- {plural(leyes, 'votación fue', 'votaciones fueron')} sobre leyes, decretos o "
+        frase += "presupuestos."
+        if peticiones:
+            frase += (
+                f" Otras {peticiones} fueron peticiones al Gobierno que no le obligan "
+                "(proposiciones no de ley y mociones)."
+            )
+        lineas.append(frase)
+    gob = a.gobierno
+    unidos = gob[gob["posicion"].isin(["Sí", "No"])] if not gob.empty else gob
+    if len(unidos):
+        p = int(unidos["pierde"].sum())
+        cuantas = "no perdió ninguna" if p == 0 else f"perdió **{p}**"
+        lineas.append(
+            f"- El Gobierno ({nombres_gobierno(a)}) {cuantas} de las {len(unidos)} votaciones en "
+            "las que sus grupos votaron lo mismo."
+        )
+    con_votos = v[(v["nominal"] | v.get("llamamiento", False)) & ~v["empate"]]
+    if len(con_votos):
+        x = con_votos.assign(d=con_votos["margen"].abs()).sort_values(["d", "fecha"]).iloc[0]
+        lineas.append(
+            f"- La votación más reñida se decidió {distancia(x)}: "
+            f"{lenguaje.titulo_llano(x['texto_expediente'] or x['titulo'], 120)}."
+        )
+    if not a.disidencias.empty:
+        n = len(a.disidencias)
+        lineas.append(
+            f"- Los diputados casi siempre votan lo mismo que su grupo: en todo el mes solo hubo "
+            f"{plural(n, 'voto distinto', 'votos distintos')} (sin contar el Grupo Mixto)."
+        )
+    return lineas
+
+
+def _destacadas(a: AnalisisMes, dest: pd.DataFrame, imagenes: dict) -> list[str]:
+    salida = []
+    pares = imagenes.get("destacadas", {})
+    for i, (_, x) in enumerate(dest.iterrows(), start=1):
+        titulo = lenguaje.titulo_llano(x["texto_expediente"] or x["titulo"])
+        salida += [f"### {i}. {titulo}", ""]
+        salida += [f"**{fecha_larga(x['fecha'])} · {x['categoria']}.** "
+                   f"{lenguaje.explicacion(x['categoria'])}", ""]  # fmt: skip
+        salida += imagen(pares.get(x["votacion_id"]), f"Resultado: {x['a_favor']} a favor y "
+                         f"{x['en_contra']} en contra", 640)  # fmt: skip
+        if x.get("empate"):
+            salida.append(f"**= Empate** a {x['a_favor']}: la votación se repitió.")
+        else:
+            res = "✔ Salió adelante" if x["aprobada"] else "✘ No salió adelante"
+            salida.append(
+                f"**{res}** {distancia(x)}: {x['a_favor']} a favor, {x['en_contra']} en contra y "
+                + (
+                    f"{plural(int(x['abstenciones']), 'abstención', 'abstenciones')}."
+                    if int(x["abstenciones"])
+                    else "ninguna abstención."
+                )
+            )
+        salida.append("")
+        if x["nominal"]:
+            q = analisis.quien_voto(a, x["votacion_id"])
+            rotulos = (("Sí", "A favor"), ("No", "En contra"), ("Abstención", "Se abstuvieron"),
+                       ("mezcla", "Repartidos"))  # fmt: skip
+            for clave, nombre in rotulos:
+                if q[clave]:
+                    salida.append(f"- **{nombre}:** {lista(q[clave])}")
+            salida.append("")
+        elif x.get("llamamiento"):
+            salida += [
+                "Fue una votación por llamamiento: cada diputado dijo su voto en voz alta. El voto "
+                f"de cada uno está en el [Diario de Sesiones]({x['url']}).",
+                "",
+            ]
+        extra = []
+        if int(x.get("votaciones_asunto", 1)) > 1:
+            extra.append(f"Este asunto tuvo {x['votaciones_asunto']} votaciones este mes; aquí "
+                         "se muestra la más disputada.")  # fmt: skip
+        if x["url"] and not x.get("llamamiento"):
+            extra.append(f"[Datos oficiales]({x['url']})")
+        if extra:
+            salida += [" ".join(extra), ""]
+    return salida
+
+
+def _que_se_voto(a: AnalisisMes) -> list[str]:
+    v = a.votaciones
+    t = v.groupby("categoria").agg(n=("votacion_id", "size"), si=("aprobada", "sum"))
+    t = t.sort_values(["n", "si"], ascending=False)
+    filas = [[c, int(x["n"]), int(x["si"]), lenguaje.explicacion(c)] for c, x in t.iterrows()]
+    return [tabla(["Tipo", "Votaciones", "Salieron adelante", "Qué es"], filas, "lrrl")]
+
+
+def componer(a: AnalisisMes, generado: datetime | None = None, imagenes: dict | None = None,
+             destacadas: pd.DataFrame | None = None) -> str:  # fmt: skip
+    """Informe principal: qué se decidió y cómo votó cada grupo, sin tecnicismos."""
+    generado = generado or datetime.now()
+    imagenes = imagenes or {}
+    hoy = generado.date()
+    titulo = f"# Qué votó el Congreso en {almacen.nombre_mes(a.mes)}"
+    intro = (
+        "Las votaciones del Pleno del Congreso de los Diputados, explicadas sin tecnicismos. "
+        f"Datos oficiales del [Congreso]({config.URL_VOTACIONES}); este resumen se actualiza "
+        f"solo cada mes (última vez: {generado:%d/%m/%Y})."
+    )
+    if a.votaciones.empty:
+        vacio = (
+            "Todavía no hay datos publicados de este mes."
+            if a.pendientes
+            else "Este mes no hubo votaciones en el Pleno."
+        )
+        return "\n".join([titulo, "", intro, "", *_pendientes(a, hoy), vacio, ""])
+    dest = analisis.destacadas(a) if destacadas is None else destacadas
+    partes = [titulo, "", intro, "", *_pendientes(a, hoy)]
+    partes += ["## En pocas palabras", "", *_pocas_palabras(a), ""]
+    if not dest.empty:
+        partes += [
+            "## Las votaciones más importantes del mes",
+            "",
+            "Elegidas por su importancia: pesan más las leyes y los decretos que las peticiones "
+            "al Gobierno, y suben las que se decidieron por pocos votos o las que perdió el "
+            "Gobierno. Cada punto del dibujo es un diputado, colocado con su grupo, y el color "
+            "es lo que votó.",
+            "",
+            *_destacadas(a, dest, imagenes),
+        ]
+    if imagenes.get("ganadora"):
+        partes += [
+            "## ¿Qué grupos votaron más veces lo que finalmente salió?",
+            "",
+            *imagen(imagenes["ganadora"], "Votaciones en que cada grupo votó lo que salió", 560),
+            "Porcentaje de votaciones en que el grupo votó Sí y salió adelante, o votó No y no "
+            "salió. Abstenerse no cuenta como acertar.",
+            "",
+        ]  # fmt: skip
+    if imagenes.get("afinidad"):
+        partes += [
+            "## ¿Quién vota con quién?",
+            "",
+            *imagen(imagenes["afinidad"], "Votaciones en que cada par de grupos votó igual", 560),
+            "Cada casilla dice en qué porcentaje de las votaciones dos grupos votaron lo mismo: "
+            "100 es que siempre coincidieron y 0 que nunca.",
+            "",
+        ]  # fmt: skip
+    partes += ["## ¿Qué tipo de cosas se votaron?", "", *_que_se_voto(a), ""]
+    partes += ["## Palabras que conviene saber", ""]
+    partes += [f"- **{p}**: {d}" for p, d in lenguaje.GLOSARIO]
+    partes += [
+        "",
+        "---",
+        "",
+        f"**¿Quieres más detalle?** El [análisis detallado]({a.mes}-detalle.md) tiene la "
+        "cohesión de cada grupo, un mapa de los diputados según cómo votan, qué diputados "
+        "votaron distinto de su grupo, las ausencias y la lista completa de votaciones.",
+        "",
+        "_Los resultados están calculados a partir de los votos: el Congreso no publica si cada "
+        "votación salió adelante. Este proyecto no tiene relación con el Congreso. Método en "
+        "[docs/DOCUMENTO_FUNCIONAL.md](../docs/DOCUMENTO_FUNCIONAL.md)._",
+    ]
+    return "\n".join(partes).rstrip() + "\n"
+
+
 def escribir(a: AnalisisMes, informes: Path | None = None) -> Path:
+    """Escribe reports/AAAA-MM.md (principal), reports/AAAA-MM-detalle.md y sus gráficos."""
     carpeta = informes or config.INFORMES
     carpeta.mkdir(parents=True, exist_ok=True)
-    imagenes = graficos.generar_mes(a, carpeta, HEMICICLOS)
+    dest = analisis.destacadas(a) if not a.votaciones.empty else pd.DataFrame()
+    imagenes = graficos.generar_mes(a, carpeta, dest if not dest.empty else None)
+    (carpeta / f"{a.mes}-detalle.md").write_text(
+        componer_detalle(a, imagenes=imagenes), encoding="utf-8"
+    )
     p = carpeta / f"{a.mes}.md"
-    p.write_text(componer(a, imagenes=imagenes), encoding="utf-8")
+    p.write_text(componer(a, imagenes=imagenes, destacadas=dest), encoding="utf-8")
     return p
 
 
@@ -484,15 +702,23 @@ def escribir_indice(
         v, _ = almacen.cargar_mes(mes, datos)
         pend = len(almacen.dias_pendientes(manifiesto, mes))
         estado = f"{plural(pend, 'día pendiente', 'días pendientes')}" if pend else "Completo"
-        filas.append([f"[{almacen.nombre_mes(mes)}]({mes}.md)", len(v), estado])
+        filas.append(
+            [
+                f"[{almacen.nombre_mes(mes)}]({mes}.md)",
+                len(v),
+                estado,
+                f"[detalle]({mes}-detalle.md)",
+            ]
+        )
     texto = "\n".join(
         [
-            "# Informes mensuales",
+            "# Qué votó el Congreso, mes a mes",
             "",
-            "Un informe por mes con las votaciones del Pleno del Congreso. Se generan solos "
-            "cada mes (ver `.github/workflows/mensual.yml`).",
+            "Un resumen por mes de las votaciones del Pleno del Congreso, explicado sin "
+            "tecnicismos, y un análisis detallado para quien quiera más. Se generan solos cada "
+            "mes.",
             "",
-            tabla(["Mes", "Votaciones", "Datos"], filas, "lrl"),
+            tabla(["Mes", "Votaciones", "Datos", "Análisis detallado"], filas, "lrll"),
             "",
         ]
     )
