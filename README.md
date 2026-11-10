@@ -4,10 +4,12 @@ Análisis automático y mensual de **cómo votan los grupos parlamentarios y los
 
 Cada mes, GitHub Actions descarga las votaciones del mes anterior, las guarda en `data/` y publica un informe en [reports/](reports/) con:
 
-- qué se votó y qué salió aprobado o rechazado;
+- qué se votó y qué salió aprobado o rechazado, por tipo de asunto;
 - la posición de cada grupo en cada votación;
-- cohesión interna, afinidad entre grupos y qué grupos fueron **decisivos**;
-- las votaciones más ajustadas;
+- un **mapa de diputados** según cómo votan y un mapa de calor de **afinidad entre grupos**;
+- con qué **mayorías** se aprobó cada cosa y qué votaciones **perdió el Gobierno**;
+- cohesión interna y qué grupos fueron **decisivos**;
+- el **hemiciclo** de las votaciones más ajustadas;
 - diputados que votaron distinto de su grupo y los que más veces no votaron.
 
 ```mermaid
@@ -34,9 +36,9 @@ make sondear                                 # 1 petición: ¿responde el portal
 
 - Solo **Pleno y Diputación Permanente**: el portal no publica votaciones de comisión.
 - Se analiza por **grupo parlamentario**, no por partido. El Grupo Mixto mezcla partidos.
-- El portal **no publica el resultado oficial**: se calcula (mayoría simple, o absoluta en la votación de conjunto de una ley orgánica).
+- El portal **no publica el resultado oficial**: se calcula con la mayoría que exige cada votación (simple, 176 o 210).
 - El Congreso publica con **semanas de retraso**. Los días aún sin datos se señalan en el informe y se rellenan en corridas posteriores.
-- Las votaciones secretas (suplicatorios) no tienen voto individual.
+- Las votaciones secretas (suplicatorios) y las públicas por llamamiento (investiduras, leyes orgánicas) no tienen voto individual en los datos abiertos: solo totales.
 
 Detalle en [docs/DOCUMENTO_FUNCIONAL.md](docs/DOCUMENTO_FUNCIONAL.md).
 

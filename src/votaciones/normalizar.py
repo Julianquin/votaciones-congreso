@@ -17,6 +17,10 @@ from __future__ import annotations
 
 import unicodedata
 from datetime import date
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .fuente import Enlace
 
 
 def texto(x) -> str:
@@ -71,6 +75,7 @@ def normalizar(
         "abstenciones": entero(tot.get("abstenciones")),
         "no_votan": entero(tot.get("noVotan")),
         "conjuntas": len(inf.get("votacionesConjuntas") or []),
+        "llamamiento": False,
         "url": url or "",
     }
     votos = [
@@ -85,3 +90,33 @@ def normalizar(
         for v in datos.get("votaciones") or []
     ]
     return fila, votos
+
+
+def normalizar_html(e: Enlace, diputados: int = 350) -> dict:
+    """Votación pública por llamamiento: sin JSON; título y totales salen de la página del día.
+
+    El voto de cada diputado solo está en el Diario de Sesiones (``url`` enlaza a él), así que
+    la votación cuenta como no nominal. «No votan» se deduce: escaños menos votos emitidos.
+    """
+    si, no, abst = (e.totales.get(k, 0) for k in ("si", "no", "abstenciones"))
+    epigrafes = [texto(x).rstrip(".") for x in e.epigrafes]
+    return {
+        "votacion_id": votacion_id(e.legislatura, e.sesion, e.numero),
+        "legislatura": e.legislatura,
+        "sesion": e.sesion,
+        "numero": e.numero,
+        "fecha": e.fecha,
+        "titulo": texto(e.tipo).rstrip("."),
+        "titulo_subgrupo": epigrafes[-1] if len(epigrafes) > 1 else "",
+        "texto_subgrupo": texto(e.detalle_texto),
+        "texto_expediente": epigrafes[0] if epigrafes else texto(e.detalle_texto),
+        "asentimiento": False,
+        "presentes": si + no + abst,
+        "a_favor": si,
+        "en_contra": no,
+        "abstenciones": abst,
+        "no_votan": max(diputados - si - no - abst, 0),
+        "conjuntas": 0,
+        "llamamiento": True,
+        "url": e.url_detalle,
+    }

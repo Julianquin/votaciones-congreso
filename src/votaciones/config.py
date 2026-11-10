@@ -29,7 +29,10 @@ TIMEOUT = 40
 # --- Método ------------------------------------------------------------------------------
 ZONA = "Europe/Madrid"
 DIPUTADOS = 350
-MAYORIA_ABSOLUTA = 176  # art. 81 CE: votación final de conjunto de una ley orgánica (D-06)
+MAYORIA_ABSOLUTA = 176  # ley orgánica (art. 81 CE), investidura (art. 99 CE): D-06
+TRES_QUINTOS = 210  # reforma constitucional (art. 167 CE): D-06
+
+MARGEN_AJUSTADA = 10  # votos de diferencia (o de distancia al umbral) para «ajustada»
 
 VOTOS_EMITIDOS = ("Sí", "No", "Abstención")
 NO_VOTA = "No vota"
@@ -37,6 +40,35 @@ NO_VOTA = "No vota"
 # El Grupo Mixto junta partidos distintos: su «posición de grupo» no expresa disciplina,
 # así que no se cuentan disidencias dentro de él (D-05).
 GRUPOS_SIN_DISCIPLINA = ("GMx",)
+
+# Grupos que forman el Gobierno en cada legislatura (D-14). Es un juicio declarado: el
+# informe cuenta «derrotas del Gobierno» cuando todos ellos votan igual y pierden.
+GOBIERNO = {15: ("GS", "GSUMAR")}
+
+# Mapa de diputados (D-13): grupo que se orienta a la derecha del eje (convención para que el
+# dibujo no cambie de sentido de un mes a otro; el signo de un eje no significa nada).
+GRUPOS_REFERENCIA_EJES = ("GP",)
+MAPA_MIN_PARTICIPACION = 0.5  # quien votó en menos de la mitad no se sitúa
+MAPA_MIN_VOTACIONES = 10  # con menos votaciones con desacuerdo no se dibuja
+
+# Tipo de asunto a partir del título del portal: (expresión regular, categoría). Gana la
+# primera que encaje. Las PNL y las mociones no obligan al Gobierno.
+CATEGORIAS = (
+    (r"investidura", "Investidura"),
+    (r"reales decretos-leyes", "Decretos-ley (convalidación)"),
+    (r"enmiendas del senado", "Leyes: enmiendas del Senado"),
+    (r"debates? de totalidad", "Enmiendas a la totalidad"),
+    (r"toma en consideración", "Leyes: toma en consideración"),
+    (r"iniciativas legislativas|lectura única|avocación|reforma del reglamento",
+     "Leyes: dictamen y votación final"),
+    (r"convenios internacionales", "Tratados internacionales"),
+    (r"proposiciones no de ley", "Proposiciones no de ley"),
+    (r"mociones", "Mociones"),
+    (r"estabilidad presupuestaria|reequilibrio|cuenta general|presupuestos",
+     "Presupuestos y estabilidad"),
+    (r"comisi|subcomisi|dación de cuentas|suplicatorio", "Organización de la Cámara"),
+)  # fmt: skip
+NO_VINCULANTES = ("Proposiciones no de ley", "Mociones")
 
 # Código del JSON -> etiqueta corta para los informes. Un código desconocido se muestra tal cual.
 ETIQUETAS_GRUPO = {

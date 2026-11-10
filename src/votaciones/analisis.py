@@ -5,8 +5,10 @@ Entradas: el DataFrame de votaciones y el de votos de almacen.cargar_mes. Nada d
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
+import numpy as np
 import pandas as pd
 
 from . import config
@@ -15,25 +17,39 @@ EMITIDOS = list(config.VOTOS_EMITIDOS)
 
 
 # --- Resultado de cada votación ----------------------------------------------------------
-def requiere_mayoria_absoluta(v: pd.DataFrame) -> pd.Series:
-    """Heurística (D-06): votación de conjunto sobre una ley orgánica."""
+RE_CONSTITUCIONAL = re.compile(r"reforma (?:constitucional|del artículo \d+ de la constitución)")
+RE_ORGANICA = re.compile(
+    r"(?:proyecto|proposición) de ley orgánica|, orgánica |carácter orgánico"
+    r"|estatuto de autonomía|reglamento del congreso"
+)
+
+
+def umbral_mayoria(v: pd.DataFrame) -> pd.Series:
+    """Votos a favor necesarios: 0 = mayoría simple (Sí > No). Reglas en D-06."""
     t = (
         v["titulo"] + " " + v["titulo_subgrupo"] + " " + v["texto_subgrupo"] + " "
         + v["texto_expediente"]
     ).str.lower()  # fmt: skip
-    return t.str.contains("orgánica", regex=False) & t.str.contains("conjunto", regex=False)
+    conjunto = t.str.contains("conjunto", regex=False)
+    umbral = pd.Series(0, index=v.index)
+    umbral = umbral.mask(t.str.contains("investidura", regex=False), config.MAYORIA_ABSOLUTA)
+    umbral = umbral.mask(conjunto & t.str.contains(RE_ORGANICA), config.MAYORIA_ABSOLUTA)
+    umbral = umbral.mask(conjunto & t.str.contains(RE_CONSTITUCIONAL), config.TRES_QUINTOS)
+    return umbral.where(~v["asentimiento"], 0).astype(int)
 
 
 def resultados(v: pd.DataFrame) -> pd.DataFrame:
-    """Añade mayoria_absoluta, aprobada y margen. El portal no publica el resultado: se calcula."""
+    """Añade umbral, aprobada y margen. El portal no publica el resultado: se calcula."""
     v = v.copy()
-    v["mayoria_absoluta"] = requiere_mayoria_absoluta(v) & ~v["asentimiento"]
+    v["umbral"] = umbral_mayoria(v)
+    cualificada = v["umbral"] > 0
     simple = v["a_favor"] > v["en_contra"]
-    absoluta = v["a_favor"] >= config.MAYORIA_ABSOLUTA
-    v["aprobada"] = v["asentimiento"] | simple.where(~v["mayoria_absoluta"], absoluta)
-    v["margen"] = (v["a_favor"] - v["en_contra"]).where(
-        ~v["mayoria_absoluta"], v["a_favor"] - config.MAYORIA_ABSOLUTA
-    )
+    v["aprobada"] = v["asentimiento"] | simple.where(~cualificada, v["a_favor"] >= v["umbral"])
+    v["margen"] = (v["a_favor"] - v["en_contra"]).where(~cualificada, v["a_favor"] - v["umbral"])
+    # Un empate con mayoría simple obliga a repetir la votación (art. 88 del Reglamento): no es
+    # un rechazo. Cuenta como no aprobada en las métricas, pero el informe lo dice.
+    v["empate"] = ~cualificada & ~v["asentimiento"] & (v["a_favor"] == v["en_contra"])
+    v["empate"] &= v["a_favor"] > 0
     return v
 
 
@@ -71,20 +87,19 @@ def tabla_grupos(v: pd.DataFrame, votos: pd.DataFrame) -> pd.DataFrame:
     c = conteos_grupo(votos)
     c["posicion"] = posicion(c)
     c["cohesion"] = cohesion(c)
-    r = resultados(v).set_index("votacion_id")[
-        ["a_favor", "en_contra", "aprobada", "mayoria_absoluta"]
-    ]
+    r = resultados(v).set_index("votacion_id")[["a_favor", "en_contra", "aprobada", "umbral"]]
     c = c.join(r, on="votacion_id")
     c["ganadora"] = ((c["posicion"] == "Sí") & c["aprobada"]) | (
         (c["posicion"] == "No") & ~c["aprobada"]
     )
     # Decisivo (D-04): si el grupo se hubiera abstenido en bloque, el resultado cambiaría.
+    cualificada = c["umbral"] > 0
     sin_si = c["a_favor"] - c["Sí"]
     decide_si = (c["posicion"] == "Sí") & c["aprobada"] & (
-        (sin_si <= c["en_contra"]).where(~c["mayoria_absoluta"], sin_si < config.MAYORIA_ABSOLUTA)
+        (sin_si <= c["en_contra"]).where(~cualificada, sin_si < c["umbral"])
     )  # fmt: skip
     decide_no = (
-        (c["posicion"] == "No") & ~c["aprobada"] & ~c["mayoria_absoluta"]
+        (c["posicion"] == "No") & ~c["aprobada"] & ~cualificada
         & (c["a_favor"] > c["en_contra"] - c["No"])
     )  # fmt: skip
     c["decisivo"] = decide_si | decide_no
@@ -131,6 +146,119 @@ def afinidad(tg: pd.DataFrame, orden: list[str]) -> pd.DataFrame:
     return m
 
 
+# --- Mapa de diputados (D-13) -----------------------------------------------------------
+CODIGO_VOTO = {"Sí": 1.0, "No": -1.0, "Abstención": 0.0}
+
+
+@dataclass
+class Mapa:
+    puntos: pd.DataFrame  # diputado, grupo, x, y, participacion
+    varianza: tuple[float, float]  # proporción explicada por cada eje
+    votaciones: int  # votaciones con desacuerdo usadas
+
+
+def mapa_diputados(votos: pd.DataFrame, min_participacion: float | None = None) -> Mapa | None:
+    """Componentes principales de la matriz diputado × votación (Sí 1, No −1, Abst. 0).
+
+    Las votaciones unánimes no aportan y se quitan; quien votó en menos de
+    ``min_participacion`` de las restantes no se sitúa. El signo de cada eje es arbitrario: se
+    orienta para que el grupo de referencia quede en positivo (convención, no ideología).
+    """
+    minimo = config.MAPA_MIN_PARTICIPACION if min_participacion is None else min_participacion
+    x = votos[votos["voto"].isin(list(CODIGO_VOTO))]
+    if x.empty:
+        return None
+    m = x.assign(v=x["voto"].map(CODIGO_VOTO)).pivot_table(
+        index="diputado", columns="votacion_id", values="v", aggfunc="first"
+    )
+    m = m.loc[:, m.std(skipna=True).fillna(0) > 0]
+    if m.shape[1] < config.MAPA_MIN_VOTACIONES:
+        return None
+    participacion = m.notna().sum(axis=1) / m.shape[1]
+    m = m[participacion >= minimo]
+    if len(m) < 3:
+        return None
+    z = (m - m.mean()).fillna(0.0).to_numpy()
+    u, s, _ = np.linalg.svd(z, full_matrices=False)
+    coords = u[:, :2] * s[:2]
+    grupo = votos.sort_values("votacion_id").groupby("diputado")["grupo"].last()
+    p = pd.DataFrame(
+        {
+            "diputado": m.index,
+            "grupo": grupo.reindex(m.index).to_numpy(),
+            "x": coords[:, 0],
+            "y": coords[:, 1],
+            "participacion": participacion.reindex(m.index).to_numpy(),
+        }
+    )
+    for eje in ("x", "y"):
+        ref = p.loc[p["grupo"].isin(config.GRUPOS_REFERENCIA_EJES), eje].mean()
+        if pd.notna(ref) and ref < 0:
+            p[eje] = -p[eje]
+        escala = p[eje].abs().max()
+        if escala > 0:
+            p[eje] = p[eje] / escala
+    var = s**2 / (s**2).sum()
+    return Mapa(p, (float(var[0]), float(var[1]) if len(var) > 1 else 0.0), m.shape[1])
+
+
+def orden_espacial(mapa: Mapa | None, orden: list[str]) -> list[str]:
+    """Grupos según la media de sus diputados en el eje 1; los que no salen en el mapa, al final."""
+    if mapa is None:
+        return list(orden)
+    medias = mapa.puntos.groupby("grupo")["x"].mean()
+    con = sorted((g for g in orden if g in medias.index), key=lambda g: medias[g])
+    return con + [g for g in orden if g not in medias.index]
+
+
+# --- Mayorías y Gobierno -----------------------------------------------------------------
+def mayorias(v: pd.DataFrame, tg: pd.DataFrame, orden: list[str]) -> pd.DataFrame:
+    """Combinaciones de grupos con posición Sí en las votaciones nominales aprobadas."""
+    if tg.empty:
+        return pd.DataFrame(columns=["grupos", "votaciones"])
+    aprobadas = v.loc[v["nominal"] & v["aprobada"], "votacion_id"]
+    si = tg[tg["votacion_id"].isin(aprobadas) & (tg["posicion"] == "Sí")]
+    combos = si.groupby("votacion_id")["grupo"].apply(
+        lambda s: tuple(g for g in orden if g in set(s))
+    )
+    n = combos.value_counts()
+    return pd.DataFrame({"grupos": list(n.index), "votaciones": n.to_numpy()})
+
+
+def gobierno(v: pd.DataFrame, tg: pd.DataFrame) -> pd.DataFrame:
+    """Posición común de los grupos del Gobierno en cada votación nominal (D-14).
+
+    Columnas: votacion_id, posicion («Sí», «No», «Abstención» o «Dividido» si no coinciden),
+    gana y pierde. Un empate no es ni lo uno ni lo otro: se repite. Vacío si la legislatura no
+    tiene grupos de Gobierno declarados en config.
+    """
+    filas = []
+    if tg.empty:
+        return pd.DataFrame(columns=["votacion_id", "posicion", "gana", "pierde"])
+    pos = tg.pivot(index="votacion_id", columns="grupo", values="posicion")
+    for _, x in v[v["nominal"]].iterrows():
+        grupos = config.GOBIERNO.get(int(x["legislatura"]), ())
+        if not grupos or not all(g in pos.columns for g in grupos):
+            continue
+        ps = {pos.loc[x["votacion_id"], g] for g in grupos}
+        comun = ps.pop() if len(ps) == 1 else "Dividido"
+        gana = (comun == "Sí" and x["aprobada"]) or (comun == "No" and not x["aprobada"])
+        pierde = comun in ("Sí", "No") and not gana and not x.get("empate", False)
+        filas.append(
+            {"votacion_id": x["votacion_id"], "posicion": comun, "gana": bool(gana),
+             "pierde": bool(pierde)}
+        )  # fmt: skip
+    return pd.DataFrame(filas, columns=["votacion_id", "posicion", "gana", "pierde"])
+
+
+def categoria(titulo: str) -> str:
+    t = titulo.lower()
+    for patron, nombre in config.CATEGORIAS:
+        if re.search(patron, t):
+            return nombre
+    return "Otros"
+
+
 # --- Diputados ---------------------------------------------------------------------------
 def disidencias(votos: pd.DataFrame, tg: pd.DataFrame) -> pd.DataFrame:
     """Votos emitidos distintos de la posición del grupo (fuera del Mixto, D-05)."""
@@ -154,22 +282,29 @@ def ausencias(votos: pd.DataFrame) -> pd.DataFrame:
 @dataclass
 class AnalisisMes:
     mes: str
-    votaciones: pd.DataFrame  # con aprobada, margen, mayoria_absoluta, nominal
+    votaciones: pd.DataFrame  # con umbral, aprobada, margen, nominal, categoria
     grupos: pd.DataFrame  # tabla_grupos
-    orden: list[str]
+    orden: list[str]  # por tamaño: tablas
     resumen: pd.DataFrame
     afinidad: pd.DataFrame
     disidencias: pd.DataFrame
     ausencias: pd.DataFrame
+    votos: pd.DataFrame = field(default_factory=pd.DataFrame)
+    mapa: Mapa | None = None
+    orden_espacial: list[str] = field(default_factory=list)  # por el eje 1: gráficos
+    mayorias: pd.DataFrame = field(default_factory=pd.DataFrame)
+    gobierno: pd.DataFrame = field(default_factory=pd.DataFrame)
     pendientes: list[str] = field(default_factory=list)
 
 
 def analizar(mes: str, v: pd.DataFrame, votos: pd.DataFrame, pendientes=None) -> AnalisisMes:
-    v = resultados(v) if not v.empty else v.assign(aprobada=[], margen=[], mayoria_absoluta=[])
+    v = resultados(v) if not v.empty else v.assign(aprobada=[], margen=[], umbral=[])
     nominales = set(votos["votacion_id"])
     v["nominal"] = v["votacion_id"].isin(nominales)
+    v["categoria"] = v["titulo"].map(categoria) if not v.empty else []
     tg = tabla_grupos(v, votos) if not votos.empty else pd.DataFrame()
     orden = orden_grupos(votos)
+    mapa = mapa_diputados(votos) if not votos.empty else None
     return AnalisisMes(
         mes=mes,
         votaciones=v,
@@ -179,5 +314,10 @@ def analizar(mes: str, v: pd.DataFrame, votos: pd.DataFrame, pendientes=None) ->
         afinidad=afinidad(tg, orden) if not tg.empty else pd.DataFrame(),
         disidencias=disidencias(votos, tg) if not tg.empty else pd.DataFrame(),
         ausencias=ausencias(votos) if not votos.empty else pd.DataFrame(),
+        votos=votos,
+        mapa=mapa,
+        orden_espacial=orden_espacial(mapa, orden),
+        mayorias=mayorias(v, tg, orden),
+        gobierno=gobierno(v, tg),
         pendientes=list(pendientes or []),
     )

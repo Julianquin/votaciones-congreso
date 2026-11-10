@@ -21,7 +21,7 @@ from . import config
 COLUMNAS_VOTACIONES = [
     "votacion_id", "legislatura", "sesion", "numero", "fecha", "titulo", "titulo_subgrupo",
     "texto_subgrupo", "texto_expediente", "asentimiento", "presentes", "a_favor", "en_contra",
-    "abstenciones", "no_votan", "conjuntas", "url",
+    "abstenciones", "no_votan", "conjuntas", "llamamiento", "url",
 ]  # fmt: skip
 COLUMNAS_VOTOS = ["votacion_id", "fecha", "asiento", "diputado", "grupo", "voto"]
 
@@ -66,6 +66,8 @@ def _leer(tabla: str, mes: str, columnas: list[str], datos: Path | None) -> pd.D
         return _vacia(columnas)
     df = pd.read_parquet(p)
     df["fecha"] = pd.to_datetime(df["fecha"]).dt.date
+    if tabla == "votaciones" and "llamamiento" not in df.columns:  # parquet anterior al 2026-11-10
+        df["llamamiento"] = False
     return df
 
 

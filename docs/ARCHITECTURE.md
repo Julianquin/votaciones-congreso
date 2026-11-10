@@ -9,7 +9,9 @@ votaciones-congreso/
 │   ├── fuente.py       portal del Congreso: calendario, enlaces del día, descarga (única con red)
 │   ├── normalizar.py   JSON de una votación -> fila de votación + filas de votos
 │   ├── almacen.py      parquet mensual, sustitución por día, manifiesto dias.json
-│   ├── analisis.py     posiciones, cohesión, decisivos, afinidad, disidencias, ausencias
+│   ├── analisis.py     umbral, posiciones, cohesión, decisivos, afinidad, mapa (PCA),
+│   │                   mayorías, Gobierno, categorías, disidencias, ausencias
+│   ├── graficos.py     hemiciclo, mapa de calor y mapa de diputados (SVG claro y oscuro)
 │   ├── informe.py      Markdown del mes e índice
 │   └── cli.py          órdenes sondear / actualizar / informe / mensual / historico
 ├── tests/              sin red; JSON sintético con la forma real del portal
@@ -17,7 +19,7 @@ votaciones-congreso/
 │   ├── votaciones/AAAA-MM.parquet
 │   ├── votos/AAAA-MM.parquet
 │   └── dias.json
-├── reports/            lo escribe el bot (en git): AAAA-MM.md y README.md
+├── reports/            lo escribe el bot (en git): AAAA-MM.md, README.md e img/AAAA-MM/*.svg
 ├── .github/workflows/  mensual.yml (cron) y tests.yml (push/PR)
 └── docs/
 ```
@@ -35,13 +37,16 @@ flowchart TD
     D -->|sí| S[Saltar]
     D -->|no o pendiente| P2
     P2 -->|fuente.leer_enlaces| E{¿Tiene JSON?}
-    E -->|no, solo PNG| M[dias.json: completo = false]
+    E -->|no, y es por llamamiento| H[normalizar_html:<br/>totales de la página]
+    E -->|no, otra| M[dias.json: completo = false]
     E -->|sí| P3
+    H --> A
     P3 -->|normalizar| A[almacen.guardar_dia]
     A --> PQ[(data/votaciones y data/votos)]
     A --> M2[dias.json: completo = true]
     PQ -->|analisis.analizar| I[informe.escribir]
     M -->|aviso de días pendientes| I
+    I -->|graficos.generar_mes| G[reports/img/AAAA-MM/*.svg]
     I --> R[reports/AAAA-MM.md + README.md]
 ```
 
@@ -58,6 +63,10 @@ No hay API: es una página Liferay con un calendario.
 | Diputados | `/es/opendata/diputados` → `DiputadosActivos__<marca>.json` con `FORMACIONELECTORAL`. **Incompleto** el 2026-11-10: 137 de 350 |
 
 Las marcas de tiempo de los nombres no son predecibles: siempre hay que leer la página del día.
+
+**Estructura de la página de un día** (la usa `fuente.leer_enlaces`): `h4` = tipo de asunto («PUNTO UNICO. Dictámenes de…», «III. Mociones…»), `h5` = expediente y, si lo hay, subgrupo, `h6` = detalle; después `<p>Si: 171</p><p>No: 179</p><p>Abstenciones: 0</p>`, el enlace «Detalle» (PDF o Diario de Sesiones) y los ficheros de `VotacionNNN/`. Tras una votación, un `h5` nuevo sustituye al último, no se acumula. Los totales del HTML coinciden con los del JSON en las 21 votaciones del 30-09-2026.
+
+**Votaciones por llamamiento.** El texto dice «(Pública por llamamiento)». No tienen JSON, solo PNG, y nunca lo tendrán: la investidura del 27-09-2023 sigue así en noviembre de 2026. Ver D-12.
 
 **Retraso de publicación.** El 10-11-2026 el calendario marcaba el 02-10-2026 como día con votaciones, pero solo había PNG. El JSON del 30-09 sí estaba.
 
@@ -78,7 +87,8 @@ Las marcas de tiempo de los nombres no son predecibles: siempre hay que leer la 
 | `asentimiento` | bool | |
 | `presentes`, `a_favor`, `en_contra`, `abstenciones`, `no_votan` | int | Totales oficiales. Cuadran con la suma de votos individuales (comprobado con 20 votaciones) |
 | `conjuntas` | int | Nº de votaciones conjuntas que trae el JSON |
-| `url` | str | JSON de origen |
+| `llamamiento` | bool | Pública por llamamiento: sin votos individuales, totales del HTML. Los parquet anteriores al 2026-11-10 no la traen; `almacen` la rellena con False |
+| `url` | str | JSON de origen o, si es por llamamiento, Diario de Sesiones |
 
 **`data/votos/AAAA-MM.parquet`**: una fila por diputado y votación nominal: `votacion_id`, `fecha`, `asiento`, `diputado` («Apellidos, Nombre»), `grupo` (código: `GP`, `GS`, `GVOX`, `GSUMAR`, `GMx`, `GJxCAT`, `GR`, `GEH Bildu`, `GV (EAJ-PNV)`) y `voto` («Sí», «No», «Abstención», «No vota»).
 

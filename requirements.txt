@@ -9,6 +9,8 @@
 requests>=2.32        # portal del Congreso
 pandas>=3.0           # analisis
 pyarrow>=16.0         # parquet de data/
+numpy>=1.26           # mapa de diputados (componentes principales)
+matplotlib>=3.8       # graficos SVG de los informes
 
 # Calidad
 pytest>=8.0

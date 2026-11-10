@@ -1,6 +1,6 @@
 from datetime import date
 
-from src.votaciones import almacen, analisis, cli, informe
+from src.votaciones import almacen, analisis, cli, graficos, informe
 from src.votaciones.normalizar import normalizar
 
 from .conftest import con_votos, votacion_json
@@ -76,3 +76,37 @@ def test_informe_mes_sin_votaciones(datos_tmp):
     v, votos = almacen.cargar_mes("2026-08")
     md = informe.componer(analisis.analizar("2026-08", v, votos))
     assert "No hubo votaciones en el Pleno este mes." in md
+
+
+def test_hemiciclo_tiene_un_asiento_por_diputado():
+    for n in (9, 120, 350, 358):
+        assert len(graficos.posiciones_hemiciclo(n)) == n
+
+
+def test_graficos_deterministas_y_en_el_informe(datos_tmp):
+    import random
+
+    random.seed(1)
+    dia = date(2026, 9, 30)
+    opciones = ["Sí", "No", "Abstención"]
+    jsons = [
+        votacion_json(sesion=202, numero=n, votos=con_votos(*random.choices(opciones, k=9)))
+        for n in range(1, 16)
+    ]
+    jsons.append(votacion_json(sesion=202, numero=16, votos=con_votos(*["Sí"] * 4, *["No"] * 5)))
+    guardar(dia, *jsons)
+    v, votos = almacen.cargar_mes("2026-09")
+    a = analisis.analizar("2026-09", v, votos)
+    p = informe.escribir(a)
+    carpeta = p.parent / "img" / "2026-09"
+    primera = {f.name: f.read_bytes() for f in carpeta.glob("*.svg")}
+    assert {"mapa.svg", "mapa-oscuro.svg", "afinidad.svg", "afinidad-oscuro.svg"} <= set(primera)
+    assert any(n.startswith("hemiciclo-") for n in primera)
+    informe.escribir(a)
+    segunda = {f.name: f.read_bytes() for f in carpeta.glob("*.svg")}
+    assert primera == segunda  # sin fechas ni ids aleatorios: no ensucia git
+    md = p.read_text()
+    assert (
+        '<source media="(prefers-color-scheme: dark)" srcset="img/2026-09/mapa-oscuro.svg">' in md
+    )
+    assert "## Mapa de diputados" in md and "## Quién sacó adelante las votaciones" in md

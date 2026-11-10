@@ -52,6 +52,8 @@ El usuario lanza él los procesos largos y hace él los commits. Tú le pasas lo
 - Un día puede salir en el calendario sin JSON (solo PNG) durante semanas. Eso es «pendiente», no «sin votaciones». No lo borres del manifiesto.
 - Algunos JSON traen BOM: leer con `utf-8-sig` (`fuente.descargar_json` ya lo hace).
 - Las votaciones secretas (suplicatorios) traen totales pero `votaciones: []`. Cuentan como votación, no como nominal.
+- Las **públicas por llamamiento** (investiduras, conjunto de leyes orgánicas, repeticiones tras empate) no tienen JSON nunca. Se leen del HTML del día (D-12). Si cambias `fuente.leer_enlaces`, prueba con el test `HTML_DIA` y con una página real.
+- Un empate con mayoría simple **no es un rechazo**: se repite (D-15).
 - El fichero de diputados «activos» del portal estaba incompleto el 2026-11-10 (137 de 350). No te fíes de él para cruzar partidos sin comprobar la cobertura.
 
 **Datos:**
@@ -59,6 +61,11 @@ El usuario lanza él los procesos largos y hace él los commits. Tú le pasas lo
 - Los códigos de grupo cambian entre legislaturas. Un código sin etiqueta en `config.ETIQUETAS_GRUPO` sale tal cual en el informe.
 - `fecha` vuelve de parquet como `datetime.date` porque `almacen._leer` la convierte. Si lees los parquet por tu cuenta, conviértela tú.
 
+**Gráficos:**
+- Los colores de Sí/No no pueden ser azul/rojo (D-16). Si tocas la paleta, pásala por el validador de la guía de visualización.
+- Los SVG deben ser deterministas: hay un test que genera dos veces y compara bytes. No metas fechas ni aleatoriedad.
+- El signo de los ejes del mapa es una convención (PP a la derecha). No escribas que el eje 1 «es» izquierda-derecha.
+
 **GitHub Actions:**
-- No se ha comprobado aún que el portal responda desde los runners de GitHub (IP de EE. UU.). Si `sondear` falla allí, ver BACKLOG.
+- El portal responde desde los runners de GitHub (comprobado el 2026-11-10).
 - El mes de entrada del `workflow_dispatch` pasa por variable de entorno y `almacen.validar_mes`. No lo interpoles en el script de shell.

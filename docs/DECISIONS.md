@@ -29,9 +29,45 @@ Se elige la abstención y no el voto contrario porque es el contrafactual más p
 
 La posición del grupo es la opción más votada por sus diputados. Si dos opciones empatan en cabeza, el grupo está «Dividido» y nadie disiente. El Grupo Mixto (`GMx`) reúne partidos distintos (Podemos, BNG, CC, UPN… en la XV) y su mayoría no expresa disciplina, así que sus votos no cuentan como disidencia (`config.GRUPOS_SIN_DISCIPLINA`). Sí aparece en las tablas de grupos y de afinidad, con la advertencia.
 
-## D-06 · Resultado calculado; mayoría absoluta por heurística (Vigente, 2026-11-10)
+## D-06 · Resultado calculado con umbral por tipo de votación (Vigente, revisada el 2026-11-10)
 
-El portal da totales pero no dice si la votación salió aprobada. Se aplica mayoría simple (Sí > No), salvo cuando el texto contiene «orgánica» y «conjunto» (votación final de conjunto de una ley orgánica, art. 81 CE): entonces Sí ≥ 176. Ver [DA-6](#da-6--validar-la-heurística-de-mayoría-absoluta).
+El portal da totales pero no dice si la votación salió aprobada. `analisis.umbral_mayoria` aplica:
+
+| Caso (por el texto de la votación) | Necesita |
+|---|---|
+| «conjunto» + reforma constitucional o «reforma del artículo N de la Constitución» (art. 167 CE) | Sí ≥ 210 (3/5) |
+| «conjunto» + ley orgánica («Proyecto/Proposición de Ley Orgánica», «…, Orgánica de», «carácter orgánico»), Estatuto de Autonomía o Reglamento del Congreso | Sí ≥ 176 |
+| Investidura (art. 99 CE) | Sí ≥ 176 (ver [DA-8](#da-8--segunda-votación-de-investidura)) |
+| Todo lo demás | Sí > No |
+
+Se comprobó con casos reales de la XV: la votación de conjunto de la amnistía (30-01-2024, 171–179) y la de la reforma del artículo 49. La primera versión buscaba «orgánica» en cualquier parte y marcaba como orgánicas leyes ordinarias que *modifican* una orgánica; hay un test que lo impide.
+
+## D-12 · Las votaciones públicas por llamamiento se leen del HTML (Vigente, 2026-11-10)
+
+Investiduras, votaciones de conjunto de leyes orgánicas, reformas constitucionales y algunas repeticiones tras empate se votan por llamamiento. El portal **no publica JSON de ellas nunca** (solo PNG), pero la página del día trae su título y sus totales. Se guardan como votaciones no nominales con `llamamiento = True` y `url` al Diario de Sesiones, donde consta el voto de cada diputado. Sin esto faltaban justo las votaciones más importantes de la legislatura, y los días quedaban «pendientes» para siempre. «No votan» se deduce (350 − votos emitidos).
+
+## D-13 · Mapa de diputados por componentes principales (Vigente, 2026-11-10)
+
+Matriz diputado × votación (Sí 1, No −1, Abst. 0, sin voto = media de la votación), sin votaciones unánimes, y dos primeras componentes principales. Se sitúa a quien votó en al menos la mitad. Es la versión más simple y transparente de los «puntos ideales» (NOMINATE, W-NOMINATE): no impone una escala izquierda-derecha. El signo de un eje es arbitrario: se orienta para que el PP quede en positivo y el dibujo no se dé la vuelta de un mes a otro. El mismo eje 1 ordena los grupos en el hemiciclo y en el mapa de calor, así que **ese orden sale de los datos**, no de una clasificación ideológica.
+
+## D-14 · Grupos del Gobierno declarados por legislatura (Vigente, 2026-11-10)
+
+`config.GOBIERNO = {15: ("GS", "GSUMAR")}`. Una votación la «pierden los grupos del Gobierno» si todos votaron lo mismo (Sí o No) y salió lo contrario. Si votan distinto entre sí, se cuenta aparte. Solo votaciones nominales.
+
+## D-15 · Empates (Vigente, 2026-11-10)
+
+Con mayoría simple, un empate obliga a repetir la votación (art. 88 del Reglamento). Se muestra como «Empate (se repite)», no cuenta como rechazada en el resumen ni como derrota del Gobierno. La repetición es otra votación (a menudo por llamamiento) con su propio resultado.
+
+## D-16 · Gráficos en SVG, en claro y oscuro, y con colores no partidistas (Vigente, 2026-11-10)
+
+- **Sí en verde azulado, No en naranja, abstención en gris.** Nunca azul/rojo: en España se leen como PP/PSOE. Paleta validada con el validador de la guía de visualización (Sí–No ΔE 13,8 en daltonismo, por encima del objetivo de 8).
+- Cada gráfico en dos versiones y servido con `<picture>`: GitHub muestra la oscura a quien lee en tema oscuro.
+- SVG con texto como texto (3–4 veces más ligero) y deterministas (sin fecha, sal de identificadores fija). Regenerar un informe sin cambios no produce diffs. Peso: ~0,6–1 MB por mes.
+- El mapa usa paneles pequeños, uno por grupo resaltado sobre el resto en gris, en vez de 9 colores en un solo gráfico: 9 colores de grupo no se distinguen en un diagrama de dispersión.
+
+## D-17 · Categorías de asunto declaradas (Vigente, 2026-11-10)
+
+`config.CATEGORIAS` traduce el título del portal a 11 categorías («Decretos-ley», «Leyes: toma en consideración», «Proposiciones no de ley»…). El informe avisa de que PNL y mociones no obligan al Gobierno.
 
 ## D-07 · Cohesión con el índice de acuerdo de Hix, Noury y Roland (Vigente, 2026-11-10)
 
@@ -82,9 +118,17 @@ El portal las tiene. Exige etiquetas de grupo por legislatura y decidir si se me
 
 Hay que confirmar el aviso legal del portal y citar la fuente como pida. Hoy el pie de cada informe cita congreso.es.
 
-### DA-6 · Validar la heurística de mayoría absoluta
+### DA-6 · Validar la heurística de mayoría absoluta (resuelta el 2026-11-10)
 
-Hay que buscar en la carga histórica una votación de conjunto de ley orgánica, ver cómo se rotula de verdad y ajustar `analisis.requiere_mayoria_absoluta`. Hasta entonces el informe marca esas votaciones con «(may. abs.)» para que se vean.
+Resuelta en D-06 con casos reales. Queda abierta la segunda votación de investidura (DA-8).
+
+### DA-8 · Segunda votación de investidura
+
+Tras una primera votación fallida, la segunda (48 horas después) exige solo mayoría simple. El portal no la distingue con fiabilidad: «(Continuación)» aparece también en primeras votaciones, como la de Sánchez del 16-11-2023. Hoy se aplica 176 a toda investidura. En la XV da el resultado correcto (Feijóo 172 dos veces, Sánchez 179), pero una segunda votación ganada por mayoría simple saldría «rechazada». Solución posible: detectar dos investiduras del mismo candidato en días distintos.
+
+### DA-9 · Posición de los grupos en las votaciones por llamamiento
+
+Hoy solo hay totales. El voto de cada diputado está en el Diario de Sesiones (PDF). Leerlo permitiría tratarlas como nominales: investiduras, leyes orgánicas y repeticiones tras empate, que son las más relevantes.
 
 ### DA-7 · Si los runners de GitHub no llegan al portal
 

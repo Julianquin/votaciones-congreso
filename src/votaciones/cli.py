@@ -18,7 +18,7 @@ from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
 from . import almacen, analisis, config, fuente, informe
-from .normalizar import normalizar
+from .normalizar import normalizar, normalizar_html
 
 log = logging.getLogger("votaciones")
 
@@ -40,7 +40,10 @@ def actualizar_dia(cliente: fuente.Cliente, leg: int, dia: date, manifiesto: dic
     filas, votos, sin_json = [], [], 0
     for e in enlaces:
         if e.url_json is None:
-            sin_json += 1
+            if e.llamamiento and e.totales:  # nunca tendrá JSON: se toma de la página (D-12)
+                filas.append(normalizar_html(e, config.DIPUTADOS))
+            else:
+                sin_json += 1
             continue
         fila, vs = normalizar(fuente.descargar_json(cliente, e.url_json), e.legislatura,
                               e.url_json, e.fecha)  # fmt: skip

@@ -10,15 +10,22 @@ El portal no tiene API: es una página Liferay con un calendario. Lo que se usa 
   La marca de tiempo del nombre no se puede adivinar: hay que leer la página del día.
 - Hay días que aparecen en el calendario sin JSON publicados todavía (solo PNG). Se marcan
   como pendientes y se vuelven a pedir en la siguiente corrida.
+- Las votaciones **públicas por llamamiento** (investiduras, votaciones de conjunto de leyes
+  orgánicas, reformas constitucionales) no tienen JSON nunca, pero la página trae su título y
+  sus totales («Si: 171», «No: 179»). Se leen del HTML como votaciones no nominales.
+
+Jerarquía de la página de un día: h4 = tipo de asunto («PUNTO UNICO. Dictámenes de…»),
+h5 = expediente y, si lo hay, subgrupo, h6 = detalle, luego «Si/No/Abstenciones» y los ficheros.
 """
 
 from __future__ import annotations
 
+import html as html_lib
 import json
 import logging
 import re
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 
 import requests
@@ -33,6 +40,15 @@ RE_FICHERO = re.compile(
     r"/webpublica/opendata/votaciones/Leg(?P<leg>\d+)/Sesion(?P<sesion>\d+)/(?P<fecha>\d{8})"
     r"/Votacion(?P<num>\d+)/[A-Za-z0-9_]+\.(?P<ext>json|xml|png|pdf)"
 )
+# Piezas de la página de un día, en el orden en que aparecen.
+RE_PIEZA = re.compile(
+    r"<(?P<h>h[3-6])[^>]*>(?P<texto>.*?)</(?P=h)>"
+    r"|<p>\s*(?P<opcion>S[ií]|No|Abstenciones)\s*:\s*(?P<n>\d+)\s*</p>"
+    r'|href="(?P<detalle>[^"]+)"[^>]*>\s*Detalle'
+    r"|" + RE_FICHERO.pattern,
+    re.S,
+)
+RE_PUNTO = re.compile(r"^(PUNTO\s+[^.]*|[IVXLC]+)\.\s*", re.I)  # «PUNTO UNICO.», «III.»
 
 
 class ErrorAcceso(RuntimeError):
@@ -45,7 +61,19 @@ class Enlace:
     sesion: int
     fecha: date
     numero: int
-    url_json: str | None  # None: la votación aparece en la página pero sin JSON todavía
+    url_json: str | None  # None: la votación aparece en la página pero sin JSON (todavía)
+    # Lo que dice la página de esa votación (h4, h5…, h6 y totales). Solo se usa cuando no
+    # hay JSON; con JSON manda el JSON.
+    tipo: str = ""
+    epigrafes: tuple[str, ...] = ()
+    detalle_texto: str = ""
+    totales: dict = field(default_factory=dict, compare=False, hash=False)
+    url_detalle: str = ""
+
+    @property
+    def llamamiento(self) -> bool:
+        textos = (*self.epigrafes, self.detalle_texto)
+        return any("llamamiento" in t.lower() for t in textos)
 
 
 def romano(n: int) -> str:
@@ -80,19 +108,54 @@ def leer_legislatura(html: str) -> int | None:
     return int(m.group(1)) if m else None
 
 
+def limpiar(fragmento: str) -> str:
+    return " ".join(html_lib.unescape(re.sub(r"<[^>]+>", " ", fragmento)).split())
+
+
 def leer_enlaces(html: str, dia: date | None = None) -> list[Enlace]:
-    """Una entrada por votación del día, con su JSON si ya está publicado."""
-    vistos: dict[tuple[int, int, date, int], str | None] = {}
-    for m in RE_FICHERO.finditer(html):
-        fecha = datetime.strptime(m["fecha"], "%Y%m%d").date()
-        if dia is not None and fecha != dia:
-            continue
-        clave = (int(m["leg"]), int(m["sesion"]), fecha, int(m["num"]))
-        if m["ext"] == "json":
-            vistos[clave] = config.BASE + m.group(0)
+    """Una entrada por votación del día: su JSON si ya está publicado y lo que dice la página."""
+    tipo, epigrafes, detalle_texto = "", [], ""
+    totales: dict[str, int] = {}
+    url_detalle = ""
+    # Tras una votación, un h5 nuevo no se suma a los anteriores: sustituye al último
+    # (subgrupo) o, si solo había uno, a ese (siguiente expediente).
+    tras_votacion = False
+    vistas: dict[tuple[int, int, date, int], dict] = {}
+    for m in RE_PIEZA.finditer(html):
+        if m["h"]:
+            texto = limpiar(m["texto"])
+            if m["h"] in ("h3", "h4"):
+                tipo = RE_PUNTO.sub("", texto).rstrip(".") if m["h"] == "h4" else ""
+                epigrafes, detalle_texto = [], ""
+            elif m["h"] == "h5":
+                if tras_votacion and epigrafes:
+                    epigrafes.pop()
+                epigrafes.append(texto)
+                detalle_texto = ""
+            else:
+                detalle_texto = texto
+            totales, url_detalle = {}, ""
+            tras_votacion = False
+        elif m["opcion"]:
+            clave = {"no": "no", "abstenciones": "abstenciones"}.get(m["opcion"].lower(), "si")
+            totales[clave] = int(m["n"])
+        elif m["detalle"]:
+            url_detalle = m["detalle"]
         else:
-            vistos.setdefault(clave, None)
-    return [Enlace(*clave, url) for clave, url in sorted(vistos.items())]
+            fecha = datetime.strptime(m["fecha"], "%Y%m%d").date()
+            if dia is not None and fecha != dia:
+                continue
+            clave = (int(m["leg"]), int(m["sesion"]), fecha, int(m["num"]))
+            info = vistas.setdefault(
+                clave,
+                {"url_json": None, "tipo": tipo, "epigrafes": tuple(epigrafes),
+                 "detalle_texto": detalle_texto, "totales": dict(totales),
+                 "url_detalle": url_detalle},
+            )  # fmt: skip
+            if m["ext"] == "json":
+                info["url_json"] = config.BASE + m.group(0)
+            tras_votacion = True
+    return [Enlace(*clave, **info) for clave, info in sorted(vistas.items())]
 
 
 # --- Red ---------------------------------------------------------------------------------
