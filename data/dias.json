@@ -1,9 +1,65 @@
 {
+ "2026-09-09": {
+  "legislatura": 15,
+  "votaciones": 2,
+  "sin_json": 0,
+  "completo": true,
+  "comprobado": "2026-11-10T18:15:23+00:00"
+ },
+ "2026-09-10": {
+  "legislatura": 15,
+  "votaciones": 21,
+  "sin_json": 0,
+  "completo": true,
+  "comprobado": "2026-11-10T18:15:46+00:00"
+ },
+ "2026-09-15": {
+  "legislatura": 15,
+  "votaciones": 2,
+  "sin_json": 0,
+  "completo": true,
+  "comprobado": "2026-11-10T18:15:50+00:00"
+ },
+ "2026-09-16": {
+  "legislatura": 15,
+  "votaciones": 58,
+  "sin_json": 0,
+  "completo": true,
+  "comprobado": "2026-11-10T18:16:54+00:00"
+ },
+ "2026-09-22": {
+  "legislatura": 15,
+  "votaciones": 2,
+  "sin_json": 0,
+  "completo": true,
+  "comprobado": "2026-11-10T18:16:57+00:00"
+ },
+ "2026-09-23": {
+  "legislatura": 15,
+  "votaciones": 11,
+  "sin_json": 0,
+  "completo": true,
+  "comprobado": "2026-11-10T18:17:11+00:00"
+ },
+ "2026-09-29": {
+  "legislatura": 15,
+  "votaciones": 2,
+  "sin_json": 0,
+  "completo": true,
+  "comprobado": "2026-11-10T18:17:13+00:00"
+ },
+ "2026-09-30": {
+  "legislatura": 15,
+  "votaciones": 21,
+  "sin_json": 0,
+  "completo": true,
+  "comprobado": "2026-11-10T18:17:38+00:00"
+ },
  "2026-10-02": {
   "legislatura": 15,
   "votaciones": 0,
   "sin_json": 2,
   "completo": false,
-  "comprobado": "2026-11-10T18:13:16+00:00"
+  "comprobado": "2026-11-10T18:17:39+00:00"
  }
 }
