@@ -1,0 +1,11 @@
+# Entornos y cachés
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# data/ y reports/ SÍ van en git: son el producto (ver docs/DECISIONS.md, D-03).
+*.parquet.tmp

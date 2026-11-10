@@ -1,0 +1,15 @@
+# Dependencias de votaciones-congreso.
+#
+# En local NO se instalan desde aqui con `pip install`: el proyecto usa el entorno unico
+# de ~/proyectos (~/proyectos/.venv), que incluye este archivo con `-r` desde
+# ~/proyectos/entorno/requirements.in. Tras cambiarlo:
+#   cd ~/proyectos/entorno && ./instalar.sh --recompilar
+# GitHub Actions si lo instala tal cual (.github/workflows/).
+
+requests>=2.32        # portal del Congreso
+pandas>=3.0           # analisis
+pyarrow>=16.0         # parquet de data/
+
+# Calidad
+pytest>=8.0
+ruff>=0.5

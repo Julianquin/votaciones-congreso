@@ -1,0 +1,17 @@
+# Solo configuracion de herramientas. Las dependencias estan en requirements.txt
+# y se instalan con el entorno unico de ~/proyectos (ver docs/HANDOFF.md).
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]          # para importar `src.votaciones` desde la raiz
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["data", "reports"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/test_fuente.py" = ["E501"]   # el HTML de prueba copia URLs reales del portal
